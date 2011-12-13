@@ -1,7 +1,9 @@
-package com.jelastic.energy;
+package com.jelastic.energy.zombie;
 
 import android.content.SharedPreferences;
 import android.view.Display;
+import com.google.ads.AdRequest;
+import com.google.ads.AdView;
 import org.anddev.andengine.audio.sound.Sound;
 import org.anddev.andengine.audio.sound.SoundFactory;
 import org.anddev.andengine.engine.Engine;
@@ -21,7 +23,9 @@ import org.anddev.andengine.opengl.texture.TextureOptions;
 import org.anddev.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlas;
 import org.anddev.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlasTextureRegionFactory;
 import org.anddev.andengine.opengl.texture.region.TextureRegion;
-import org.anddev.andengine.ui.activity.BaseGameActivity;
+import org.anddev.andengine.sensor.accelerometer.AccelerometerData;
+import org.anddev.andengine.sensor.accelerometer.IAccelerometerListener;
+import org.anddev.andengine.ui.activity.LayoutGameActivity;
 import org.anddev.andengine.util.Debug;
 import org.anddev.andengine.util.MathUtils;
 import org.anddev.andengine.util.SimplePreferences;
@@ -29,13 +33,9 @@ import org.anddev.andengine.util.SimplePreferences;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GameActivity extends BaseGameActivity {
+public class GameActivity extends LayoutGameActivity implements IAccelerometerListener {
     private Sound failSound;
     private Sound hitSound;
-    private static final int CAMERA_WIDTH = 1280;
-    private static final int CAMERA_HEIGHT = 800;
-    private BitmapTextureAtlas bgBitmapTextureAtlas;
-
     private TextureRegion backgroundTexture;
     private TextureRegion targetTexture;
 
@@ -60,6 +60,15 @@ public class GameActivity extends BaseGameActivity {
         return new Engine(new EngineOptions(true, EngineOptions.ScreenOrientation.LANDSCAPE, new RatioResolutionPolicy(width, height), camera).setNeedsSound(true));
     }
 
+    @Override
+    protected int getLayoutID() {
+        return R.layout.main;
+    }
+
+    @Override
+    protected int getRenderSurfaceViewID() {
+        return R.id.xmllayoutexample_rendersurfaceview;
+    }
 
     private int getTargetSize() {
         return (int) (this.height / 4.2f);
@@ -114,10 +123,11 @@ public class GameActivity extends BaseGameActivity {
         final Scene scene = new Scene();
         for (int j = 0; j < 3; j++) {
             for (int i = 0; i < 5; i++) {
-                final Sprite targetSprite = new Sprite(leftOffset + (size + dx) * i, topOffset + (size + dy) * j, this.targetTexture) {
+                final Target targetSprite = new Target(leftOffset + (size + dx) * i, topOffset + (size + dy) * j, this.targetTexture) {
                     @Override
                     public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
                         if (pSceneTouchEvent.isActionDown()) {
+                            this.setRotating(!this.isRotating());
                             hitSound.play();
                         }
                         return true;
@@ -133,12 +143,16 @@ public class GameActivity extends BaseGameActivity {
 
                     @Override
                     public void onUpdate(float pSecondsElapsed) {
+                        if (!targetSprite.isRotating() && angle % 180 == 0) return;
                         elapsed += pSecondsElapsed;
 
                         //if (elapsed >= .03f) {
-                            elapsed = 0;
-                            this.angle += 5 + MathUtils.random(0, 5);
-                            targetSprite.setScale(Math.abs((float) Math.cos(this.angle * Math.PI / 180)), 1f);
+                        elapsed = 0;
+                        this.angle += 10 + MathUtils.random(0, 5);
+                        if (angle >= 180) {
+                            angle = 0;
+                        }
+                        targetSprite.setScale(Math.abs((float) Math.cos(this.angle * Math.PI / 180)), 1f);
                         //}
                     }
 
@@ -159,5 +173,15 @@ public class GameActivity extends BaseGameActivity {
 
     @Override
     public void onLoadComplete() {
+        AdView adView = (AdView)this.findViewById(R.id.adView);
+        adView.setVisibility(android.view.View.VISIBLE);
+        adView.setEnabled(true);
+
+        AdRequest request = new AdRequest();
+        adView.loadAd(request);
+    }
+
+    @Override
+    public void onAccelerometerChanged(AccelerometerData pAccelerometerData) {
     }
 }

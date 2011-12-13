@@ -1,13 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="horizontal"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
->
-<TextView  
-    android:layout_width="fill_parent" 
-    android:layout_height="fill_parent"
-    android:text="Hello World, MainActivity"
-    />
-</LinearLayout>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:ads="http://schemas.android.com/apk/lib/com.google.ads"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent">
+    <org.anddev.andengine.opengl.view.RenderSurfaceView
+            android:id="@+id/xmllayoutexample_rendersurfaceview"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_centerInParent="true"
+            android:gravity="center" />
 
+    <com.google.ads.AdView
+            xmlns:ads="http://schemas.android.com/apk/lib/com.google.ads"
+            android:id="@+id/adView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            ads:adUnitId="a14ee7aafc05b55"
+            android:layout_gravity="bottom|right"
+            android:gravity="bottom|right"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentRight="true"
+            ads:adSize="BANNER"/>
+
+    <!--<com.google.ads.AdView
+            xmlns:ads="http://schemas.android.com/apk/lib/com.google.ads"
+            android:id="@+id/adView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            ads:adUnitId="a14ee7aafc05b55"
+            ads:adSize="BANNER"
+            ads:backgroundColor="#000000"
+            ads:primaryTextColor="#FFFFFF"
+            ads:secondaryTextColor="#CCCCCC"
+            android:layout_gravity="bottom|right"
+            android:gravity="bottom|right"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentRight="true"
+            android:layout_marginLeft="22dip"
+            android:layout_marginTop="-51dip"/>-->
+
+</RelativeLayout>
