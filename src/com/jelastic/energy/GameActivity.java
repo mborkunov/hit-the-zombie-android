@@ -2,7 +2,6 @@ package com.jelastic.energy;
 
 import android.content.SharedPreferences;
 import android.view.Display;
-import android.widget.Toast;
 import org.anddev.andengine.audio.sound.Sound;
 import org.anddev.andengine.audio.sound.SoundFactory;
 import org.anddev.andengine.engine.Engine;
@@ -56,16 +55,20 @@ public class GameActivity extends BaseGameActivity {
         this.width = display.getWidth();
         this.height = display.getHeight();
 
-        Toast.makeText(this, "Screen.resolution: " + this.width + "x" + this.height, Toast.LENGTH_LONG).show();
+        //Toast.makeText(this, "Screen.resolution: " + this.width + "x" + this.height, Toast.LENGTH_LONG).show();
         final Camera camera = new Camera(0, 0, width, height);
         return new Engine(new EngineOptions(true, EngineOptions.ScreenOrientation.LANDSCAPE, new RatioResolutionPolicy(width, height), camera).setNeedsSound(true));
+    }
 
+
+    private int getTargetSize() {
+        return (int) (this.height / 4.2f);
     }
 
     @Override
     public void onLoadResources() {
         this.mEngine.registerUpdateHandler(new FPSLogger());
-        this.targetTextureAtlas = new BitmapTextureAtlas(512, 512, TextureOptions.DEFAULT);
+        this.targetTextureAtlas = new BitmapTextureAtlas(1024, 1024, TextureOptions.NEAREST);
         this.backgroundTextureAtlas = new BitmapTextureAtlas(2048, 2048, TextureOptions.DEFAULT);
         BitmapTextureAtlasTextureRegionFactory.setAssetBasePath("gfx/");
 
@@ -98,15 +101,20 @@ public class GameActivity extends BaseGameActivity {
 
     @Override
     public Scene onLoadScene() {
-        //if (!this.preferences.contains("highscore")) {
-            //this.preferences.edit().putInt("highscore", 1150);
-        //}
+        if (!this.preferences.contains("highscore")) {
+            this.preferences.edit().putInt("highscore", 1150);
+        }
+
+        int size = getTargetSize();
+        int dx = width / 25, dy = height / 50;
+
+        int topOffset = height - ((getTargetSize() + dy) * 3) - (int) (height * .05);
+        int leftOffset = (width - (5 * (size + dx))) / 2;
+
         final Scene scene = new Scene();
-        //scene.attachChild(new Text(10, 10, mFont, "Highscore: "  + 1150));
-        int offset = 185;
         for (int j = 0; j < 3; j++) {
             for (int i = 0; i < 5; i++) {
-                final Sprite targetSprite = new Sprite(150 + offset * i, 150 + offset * j, this.targetTexture) {
+                final Sprite targetSprite = new Sprite(leftOffset + (size + dx) * i, topOffset + (size + dy) * j, this.targetTexture) {
                     @Override
                     public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
                         if (pSceneTouchEvent.isActionDown()) {
@@ -115,9 +123,9 @@ public class GameActivity extends BaseGameActivity {
                         return true;
                     }
                 };
-                targetSprite.setWidth(150);
-                targetSprite.setHeight(150);
-                targetSprite.setScaleCenterX(75);
+                targetSprite.setWidth(getTargetSize());
+                targetSprite.setHeight(getTargetSize());
+                targetSprite.setScaleCenterX(getTargetSize() / 2);
 
                 targetSprite.registerUpdateHandler(new IUpdateHandler() {
                     private int angle = 0;
