@@ -1,6 +1,7 @@
 package com.jelastic.energy.zombie;
 
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.view.Display;
 import com.google.ads.AdRequest;
 import com.google.ads.AdView;
@@ -11,30 +12,38 @@ import org.anddev.andengine.engine.camera.Camera;
 import org.anddev.andengine.engine.handler.IUpdateHandler;
 import org.anddev.andengine.engine.options.EngineOptions;
 import org.anddev.andengine.engine.options.resolutionpolicy.RatioResolutionPolicy;
+import org.anddev.andengine.entity.IEntity;
+import org.anddev.andengine.entity.modifier.AlphaModifier;
+import org.anddev.andengine.entity.modifier.IEntityModifier;
+import org.anddev.andengine.entity.modifier.SequenceEntityModifier;
+import org.anddev.andengine.entity.primitive.Rectangle;
 import org.anddev.andengine.entity.scene.Scene;
 import org.anddev.andengine.entity.scene.background.SpriteBackground;
 import org.anddev.andengine.entity.sprite.Sprite;
+import org.anddev.andengine.entity.text.ChangeableText;
 import org.anddev.andengine.entity.util.FPSLogger;
 import org.anddev.andengine.extension.input.touch.controller.MultiTouchController;
 import org.anddev.andengine.extension.input.touch.exception.MultiTouchException;
+import org.anddev.andengine.input.touch.TouchEvent;
 import org.anddev.andengine.opengl.font.Font;
+import org.anddev.andengine.opengl.font.FontFactory;
 import org.anddev.andengine.opengl.texture.TextureOptions;
 import org.anddev.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlas;
 import org.anddev.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlasTextureRegionFactory;
 import org.anddev.andengine.opengl.texture.region.TextureRegion;
 import org.anddev.andengine.opengl.texture.region.TiledTextureRegion;
-import org.anddev.andengine.sensor.accelerometer.AccelerometerData;
-import org.anddev.andengine.sensor.accelerometer.IAccelerometerListener;
 import org.anddev.andengine.ui.activity.LayoutGameActivity;
 import org.anddev.andengine.util.Debug;
+import org.anddev.andengine.util.HorizontalAlign;
 import org.anddev.andengine.util.MathUtils;
 import org.anddev.andengine.util.SimplePreferences;
+import org.anddev.andengine.util.modifier.IModifier;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class GameActivity extends LayoutGameActivity implements IAccelerometerListener {
+public class GameActivity extends LayoutGameActivity {
     protected static Sound failSound;
     protected static Sound hitSound;
     private static final int COLS = 5;
@@ -51,6 +60,23 @@ public class GameActivity extends LayoutGameActivity implements IAccelerometerLi
     private BitmapTextureAtlas mFontTexture;
     private Font mFont;
     private TiledTextureRegion tiles;
+    private Rectangle overlay;
+    private Scene scene;
+
+    protected int score;
+    protected int highscore;
+
+
+    private ChangeableText highscoreText;
+    private ChangeableText progressText;
+    
+    private final static int ROUND_TIME = 60;
+    private long startTime = 0;
+
+    public static GameActivity self;
+    {
+        self = this;
+    }
 
     @Override
     public Engine onLoadEngine() {
@@ -103,20 +129,16 @@ public class GameActivity extends LayoutGameActivity implements IAccelerometerLi
             Debug.e(e);
         }
 
-        // loading font
-        /*this.mFontTexture = new BitmapTextureAtlas(256, 256, TextureOptions.DEFAULT);
-        this.mFont = new Font(this.mFontTexture, Typeface.create(Typeface.DEFAULT, Typeface.BOLD), 32, true, Color.BLACK);
-
-        this.mEngine.getTextureManager().loadTexture(this.mFontTexture);
-        this.getFontManager().loadFont(this.mFont);*/
+        // loading fonts
+        FontFactory.setAssetBasePath("font/");
+        mFontTexture = new BitmapTextureAtlas(512, 256, TextureOptions.BILINEAR);
+        mFont = FontFactory.createFromAsset(mFontTexture, this.getApplicationContext(), "andy.ttf", 70, true, Color.YELLOW);
+        mEngine.getTextureManager().loadTexture(mFontTexture);
+        mEngine.getFontManager().loadFont(mFont);
     }
 
     @Override
     public Scene onLoadScene() {
-        if (!this.preferences.contains("highscore")) {
-            this.preferences.edit().putInt("highscore", 1150);
-        }
-
         int size = getTargetSize();
         int dx = width / 25, dy = height / 50;
 
@@ -124,6 +146,11 @@ public class GameActivity extends LayoutGameActivity implements IAccelerometerLi
         int leftOffset = (width - (5 * (size + dx))) / 2;
 
         final Scene scene = new Scene();
+
+        highscoreText = new ChangeableText(10, 10, mFont, "Highscore: " + getHighScore() + "    ");
+        progressText = new ChangeableText(200, 50, mFont, String.valueOf(getProgress()), HorizontalAlign.RIGHT, 2);
+        scene.attachChild(highscoreText);
+        scene.attachChild(progressText);
         for (int j = 0; j < ROWS; j++) {
             for (int i = 0; i < COLS; i++) {
                 final Target targetSprite = new Target(leftOffset + (size + dx) * i, topOffset + (size + dy) * j, this.tiles.deepCopy());
@@ -132,10 +159,11 @@ public class GameActivity extends LayoutGameActivity implements IAccelerometerLi
                 targetSprite.setScaleCenterX(getTargetSize() / 2);
                 scene.attachChild(targetSprite);
                 this.targets.add(targetSprite);
+
                 scene.registerTouchArea(targetSprite);
             }
         }
-        scene.setTouchAreaBindingEnabled(true);
+        //scene.setTouchAreaBindingEnabled(true);
         float sx = width / (float) backgroundTexture.getWidth(), sy = height / (float) backgroundTexture.getHeight();
         Sprite bgSprite = new Sprite(0, 0, this.backgroundTexture);
         bgSprite.setScale(sx, sy);
@@ -143,14 +171,25 @@ public class GameActivity extends LayoutGameActivity implements IAccelerometerLi
         bgSprite.setHeight(height);
         scene.setBackground(new SpriteBackground(bgSprite));
         scene.registerUpdateHandler(new IUpdateHandler() {
+            private float elapsed = 0;
             @Override
             public void onUpdate(float pSecondsElapsed) {
+                if (!started) {
+                    return;
+                }
 
+                progressText.setText(String.valueOf(getProgress()));
+
+                elapsed += pSecondsElapsed;
+                if (elapsed < .02) {
+                    return;
+                } else {
+                    elapsed = 0;
+                }
                 List<Target> sleeping = getSleepTargets();
                 if (!sleeping.isEmpty()) {
                     for (Target target : sleeping) {
-                        float extra = 0.5f;
-                        float probability = (target.front ? 0.005f : .0005f) + extra;
+                        float probability = getProbability(target.front);
 
                         if (!target.front && ((new Date().getTime()) - target.stopTime) < 1000) {
                             continue;
@@ -167,6 +206,12 @@ public class GameActivity extends LayoutGameActivity implements IAccelerometerLi
             public void reset() {
             }
         });
+
+        scene.attachChild(getOverlay());
+        scene.registerTouchArea(getOverlay());
+
+        this.scene = scene;
+
         return scene;
     }
 
@@ -179,6 +224,52 @@ public class GameActivity extends LayoutGameActivity implements IAccelerometerLi
         }
         return res;
     }
+    
+    protected void setScore(int score) {
+        this.score = Math.max(0, score);
+        setHighScore(this.score);
+    }
+
+    protected void setHighScore(int score) {
+        if (highscore < score) {
+            highscore = score;
+            preferences.edit().putInt("highscore", highscore);
+            preferences.edit().commit();
+            highscoreText.setText("highscore: " + highscore);
+        }
+    }
+
+
+    public boolean hasHighScore() {
+        return preferences.contains("highscore");
+    }
+
+    public int getHighScore() {
+        return hasHighScore() ? preferences.getInt("highscore", 0) : 0;
+    }
+
+    protected int getScore() {
+        return score;
+    }
+    
+    protected int getProgress() {
+        if (startTime == 0) return 0;
+        return (int) ((new Date().getTime() - startTime) / 10f * ROUND_TIME);
+    }
+    
+    protected boolean hasStarted() {
+        return started;
+    }
+
+    protected int getTimeLeft() {
+        if (!hasStarted()) return -1;
+        return Math.abs(ROUND_TIME - (int) (new Date().getTime() - startTime) / 1000);
+    }
+    
+    private float getProbability(boolean front) {
+        float extra = 0.01f;
+        return (front ? 0.005f : .0005f) + extra;
+    }
 
     @Override
     public void onLoadComplete() {
@@ -190,7 +281,46 @@ public class GameActivity extends LayoutGameActivity implements IAccelerometerLi
         adView.loadAd(request);
     }
 
-    @Override
-    public void onAccelerometerChanged(AccelerometerData pAccelerometerData) {
+    private boolean started = false;
+    private boolean animation = false;
+
+    public void start() {
+        this.scene.unregisterTouchArea(overlay);
+        getOverlay().registerEntityModifier(new SequenceEntityModifier(new IEntityModifier.IEntityModifierListener() {
+            @Override
+            public void onModifierStarted(IModifier<IEntity> pModifier, IEntity pItem) {
+                animation = true;
+            }
+
+            @Override
+            public void onModifierFinished(IModifier<IEntity> pModifier, IEntity pItem) {
+                started = true;
+                startTime = new Date().getTime();
+                animation = false;
+            }
+        }, new AlphaModifier(1, .5f, 0)));
     }
+
+    public void stop() {
+        started = false;
+        //getOverlay().registerEntityModifier(new AlphaModifier(1, 0, .5f));
+    }
+
+    private Rectangle getOverlay() {
+        if (overlay == null) {
+            overlay = new Rectangle(0, 0, width, height) {
+                @Override
+                public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
+                    if (animation) return false;
+                    start();
+                    return true;
+                }
+            };
+            overlay.setAlpha(.5f);
+            overlay.setColor(0, 0, 0);
+            overlay.setZIndex(10);
+        }
+        return overlay;
+    }
+
 }

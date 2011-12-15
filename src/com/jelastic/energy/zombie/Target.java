@@ -13,10 +13,17 @@ public class Target extends TiledSprite {
 
     private IUpdateHandler handler = new IUpdateHandler() {
         private int angle = 0;
-        private float elapsed;
+        private float elapsed = 0;
 
         @Override
         public void onUpdate(float pSecondsElapsed) {
+            elapsed += pSecondsElapsed;
+            if (elapsed < .02) {
+                return;
+            } else {
+                elapsed = 0;
+            }
+
             if (!isRotating()) return;
 
             if (angle >= 360) {
@@ -29,18 +36,22 @@ public class Target extends TiledSprite {
                     setRotating(false);
                 }
             }
+            int step = getAngleStep();
 
             if (currentTurn <= turns) {
-                if ((this.angle < 90 && this.angle + ANGLE_STEP >= 90) || (this.angle < 270 && this.angle + ANGLE_STEP >= 270)) {
+                if ((this.angle < 90 && this.angle + ANGLE_STEP >= 90)) {
+                    front = false;
                     setFlippedHorizontal(MathUtils.random(0, 1) == 1);
-                    front = !front;
                     if (!front) {
                         setCurrentTileIndex(MathUtils.random(1, 3));
-                    } else {
-                        setCurrentTileIndex(0);
                     }
+                } else if (this.angle < 270 && this.angle + ANGLE_STEP >= 270) {
+                    front = true;
+                    setFlippedHorizontal(MathUtils.random(0, 1) == 1);
+                    setCurrentTileIndex(0);
                 }
                 this.angle += ANGLE_STEP;
+                hit = false;
                 setScale(Math.abs((float) Math.cos(this.angle * Math.PI / 180)), 1f);
             }
         }
@@ -51,12 +62,17 @@ public class Target extends TiledSprite {
         }
     };
 
+    private int getAngleStep() {
+        return 10 + (int) (GameActivity.self.getProgress() / 10f);
+    }
+
     private boolean rotating = false;
     private int currentTurn = 0;
     private int turns = 0;
     protected boolean front = true;
     private static final int ANGLE_STEP = 15;
     protected long stopTime = new Date().getTime();
+    private boolean hit = false;
 
 
     public Target(float pX, float pY, TiledTextureRegion pTiledTextureRegion) {
@@ -83,19 +99,20 @@ public class Target extends TiledSprite {
 
     @Override
     public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
-        if (pSceneTouchEvent.isActionMove() || pSceneTouchEvent.isActionUp() || pSceneTouchEvent.isActionOutside()) {
-            //return true;
-        }
-
-        //if (!isRotating()) {
+        if (!isRotating()) {
             if (!front) {
                 setCurrentTileIndex(getCurrentTileIndex() + 3);
                 rotate(1);
                 GameActivity.hitSound.play();
+                GameActivity.self.setScore(GameActivity.self.getScore() + 10);
             } else {
-                GameActivity.failSound.play();
+                if (!hit) {
+                    hit = true;
+                    GameActivity.failSound.play();
+                    GameActivity.self.setScore(GameActivity.self.getScore() - 5);
+                }
             }
-        //}
+        }
         return true;
     }
 }

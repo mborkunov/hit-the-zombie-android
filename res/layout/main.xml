@@ -23,4 +23,5 @@
             android:gravity="top|right"
             android:layout_alignParentRight="true"
             ads:adSize="BANNER"/>
+
 </RelativeLayout>
