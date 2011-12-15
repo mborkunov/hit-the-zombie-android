@@ -24,33 +24,37 @@ public class Target extends TiledSprite {
                 elapsed = 0;
             }
 
+            if (!GameActivity.self.hasStarted() && !front && !isRotating()) {
+                rotate(1);
+            }
+
             if (!isRotating()) return;
 
             if (angle >= 360) {
                 angle %= 360;
             }
 
-            if (this.angle % 180 == 0) {
+            int step = getAngleStep();
+            if (this.angle % 180 < step) {
                 currentTurn++;
                 if (currentTurn > turns) {
                     setRotating(false);
                 }
             }
-            int step = getAngleStep();
 
             if (currentTurn <= turns) {
-                if ((this.angle < 90 && this.angle + ANGLE_STEP >= 90)) {
+                if ((this.angle < 90 && this.angle + step >= 90)) {
                     front = false;
                     setFlippedHorizontal(MathUtils.random(0, 1) == 1);
                     if (!front) {
                         setCurrentTileIndex(MathUtils.random(1, 3));
                     }
-                } else if (this.angle < 270 && this.angle + ANGLE_STEP >= 270) {
+                } else if (this.angle < 270 && this.angle + step >= 270) {
                     front = true;
                     setFlippedHorizontal(MathUtils.random(0, 1) == 1);
                     setCurrentTileIndex(0);
                 }
-                this.angle += ANGLE_STEP;
+                this.angle += step;
                 hit = false;
                 setScale(Math.abs((float) Math.cos(this.angle * Math.PI / 180)), 1f);
             }
@@ -63,14 +67,13 @@ public class Target extends TiledSprite {
     };
 
     private int getAngleStep() {
-        return 10 + (int) (GameActivity.self.getProgress() / 10f);
+        return 15 + (int) (GameActivity.self.getProgress() / 15f);
     }
 
     private boolean rotating = false;
     private int currentTurn = 0;
     private int turns = 0;
     protected boolean front = true;
-    private static final int ANGLE_STEP = 15;
     protected long stopTime = new Date().getTime();
     private boolean hit = false;
 

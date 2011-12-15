@@ -1,5 +1,6 @@
 package com.jelastic.energy.zombie;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.view.Display;
@@ -19,6 +20,7 @@ import org.anddev.andengine.entity.modifier.SequenceEntityModifier;
 import org.anddev.andengine.entity.primitive.Rectangle;
 import org.anddev.andengine.entity.scene.Scene;
 import org.anddev.andengine.entity.scene.background.SpriteBackground;
+import org.anddev.andengine.entity.shape.Shape;
 import org.anddev.andengine.entity.sprite.Sprite;
 import org.anddev.andengine.entity.text.ChangeableText;
 import org.anddev.andengine.entity.util.FPSLogger;
@@ -44,31 +46,33 @@ import java.util.Date;
 import java.util.List;
 
 public class GameActivity extends LayoutGameActivity {
+
+    // sounds
     protected static Sound failSound;
     protected static Sound hitSound;
+
     private static final int COLS = 5;
     private static final int ROWS = 3;
     private TextureRegion backgroundTexture;
-    private TextureRegion targetTextures;
 
     private List<Target> targets = new ArrayList<Target>(15);
     private int width;
     private int height;
-    private BitmapTextureAtlas backgroundTextureAtlas;
-    private BitmapTextureAtlas targetTextureAtlas;
+
     private SharedPreferences preferences;
-    private BitmapTextureAtlas mFontTexture;
+
     private Font mFont;
-    private TiledTextureRegion tiles;
+    private TiledTextureRegion targetTiles;
+
     private Rectangle overlay;
     private Scene scene;
 
     protected int score;
     protected int highscore;
 
-
+    private ChangeableText scoreText;
     private ChangeableText highscoreText;
-    private ChangeableText progressText;
+    private ChangeableText timerText;
     
     private final static int ROUND_TIME = 60;
     private long startTime = 0;
@@ -106,14 +110,20 @@ public class GameActivity extends LayoutGameActivity {
     @Override
     public void onLoadResources() {
         this.mEngine.registerUpdateHandler(new FPSLogger());
-        this.targetTextureAtlas = new BitmapTextureAtlas(2048, 256, TextureOptions.BILINEAR);
-        this.backgroundTextureAtlas = new BitmapTextureAtlas(2048, 2048, TextureOptions.BILINEAR);
+
+        // textures
+        BitmapTextureAtlas targetTextureAtlas = new BitmapTextureAtlas(2048, 256, TextureOptions.BILINEAR);
+        BitmapTextureAtlas backgroundTextureAtlas = new BitmapTextureAtlas(2048, 2048, TextureOptions.BILINEAR);
 
         BitmapTextureAtlasTextureRegionFactory.setAssetBasePath("gfx/");
 
-        this.tiles = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(this.targetTextureAtlas, this, "tiles.png", 0, 0, 7, 1);
-        this.backgroundTexture = BitmapTextureAtlasTextureRegionFactory.createFromAsset(this.backgroundTextureAtlas, this, "cemetery.png", 0, 0);
+        this.targetTiles = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(targetTextureAtlas, this, "tiles.png", 0, 0, 7, 1);
+        this.backgroundTexture = BitmapTextureAtlasTextureRegionFactory.createFromAsset(backgroundTextureAtlas, this, "cemetery.png", 0, 0);
 
+        this.mEngine.getTextureManager().loadTexture(targetTextureAtlas);
+        this.mEngine.getTextureManager().loadTexture(backgroundTextureAtlas);
+
+        // sounds
         SoundFactory.setAssetBasePath("sounds/");
         try {
             hitSound = SoundFactory.createSoundFromAsset(this.mEngine.getSoundManager(), this, "hit.ogg");
@@ -121,18 +131,18 @@ public class GameActivity extends LayoutGameActivity {
         } catch (final Throwable e) {
             Debug.e(e);
         }
-        this.mEngine.getTextureManager().loadTexture(this.targetTextureAtlas);
-        this.mEngine.getTextureManager().loadTexture(this.backgroundTextureAtlas);
+
+        // multi touch
         try {
             this.mEngine.setTouchController(new MultiTouchController());
         } catch (MultiTouchException e) {
             Debug.e(e);
         }
 
-        // loading fonts
+        // fonts
         FontFactory.setAssetBasePath("font/");
-        mFontTexture = new BitmapTextureAtlas(512, 256, TextureOptions.BILINEAR);
-        mFont = FontFactory.createFromAsset(mFontTexture, this.getApplicationContext(), "andy.ttf", 70, true, Color.YELLOW);
+        BitmapTextureAtlas mFontTexture = new BitmapTextureAtlas(512, 256, TextureOptions.BILINEAR);
+        mFont = FontFactory.createFromAsset(mFontTexture, this.getApplicationContext(), "andy.ttf", height / 10, true, Color.YELLOW);
         mEngine.getTextureManager().loadTexture(mFontTexture);
         mEngine.getFontManager().loadFont(mFont);
     }
@@ -147,23 +157,21 @@ public class GameActivity extends LayoutGameActivity {
 
         final Scene scene = new Scene();
 
-        highscoreText = new ChangeableText(10, 10, mFont, "Highscore: " + getHighScore() + "    ");
-        progressText = new ChangeableText(200, 50, mFont, String.valueOf(getProgress()), HorizontalAlign.RIGHT, 2);
+        highscoreText = new ChangeableText(leftOffset, 10, mFont, "Score: " + getHighScore() + "    ");
+        timerText = new ChangeableText(150, 50, mFont, String.valueOf(100 - getProgress()), HorizontalAlign.RIGHT, 4);
         scene.attachChild(highscoreText);
-        scene.attachChild(progressText);
+        scene.attachChild(timerText);
         for (int j = 0; j < ROWS; j++) {
             for (int i = 0; i < COLS; i++) {
-                final Target targetSprite = new Target(leftOffset + (size + dx) * i, topOffset + (size + dy) * j, this.tiles.deepCopy());
+                final Target targetSprite = new Target(leftOffset + (size + dx) * i, topOffset + (size + dy) * j, this.targetTiles.deepCopy());
                 targetSprite.setWidth(getTargetSize());
                 targetSprite.setHeight(getTargetSize());
                 targetSprite.setScaleCenterX(getTargetSize() / 2);
+                targetSprite.setZIndex(2);
                 scene.attachChild(targetSprite);
                 this.targets.add(targetSprite);
-
-                scene.registerTouchArea(targetSprite);
             }
         }
-        //scene.setTouchAreaBindingEnabled(true);
         float sx = width / (float) backgroundTexture.getWidth(), sy = height / (float) backgroundTexture.getHeight();
         Sprite bgSprite = new Sprite(0, 0, this.backgroundTexture);
         bgSprite.setScale(sx, sy);
@@ -178,7 +186,7 @@ public class GameActivity extends LayoutGameActivity {
                     return;
                 }
 
-                progressText.setText(String.valueOf(getProgress()));
+                timerText.setText(String.valueOf(100 - getProgress()));
 
                 elapsed += pSecondsElapsed;
                 if (elapsed < .02) {
@@ -200,16 +208,38 @@ public class GameActivity extends LayoutGameActivity {
                         }
                     }
                 }
+
+                if (getTimeLeft() == 0) {
+                    started = false;
+                    overlay.setVisible(true);
+                    overlay.registerEntityModifier(new SequenceEntityModifier(new IEntityModifier.IEntityModifierListener() {
+
+                        @Override
+                        public void onModifierStarted(IModifier<IEntity> pModifier, IEntity pItem) {
+                            animation = true;
+                        }
+
+                        @Override
+                        public void onModifierFinished(IModifier<IEntity> pModifier, IEntity pItem) {
+                            animation = false;
+
+                            overlay.getFirstChild().setVisible(true);
+                            overlay.getLastChild().setVisible(true);
+                            scene.clearTouchAreas();
+                            scene.registerTouchArea((Shape) getOverlay().getFirstChild());
+                            scene.registerTouchArea((Shape) getOverlay().getLastChild());
+                        }
+                    }, new AlphaModifier(.5f, 0, .5f)));
+                }
             }
 
             @Override
             public void reset() {
             }
         });
-
         scene.attachChild(getOverlay());
-        scene.registerTouchArea(getOverlay());
-
+        scene.registerTouchArea((Shape) getOverlay().getFirstChild());
+        scene.registerTouchArea((Shape) getOverlay().getLastChild());
         this.scene = scene;
 
         return scene;
@@ -231,12 +261,12 @@ public class GameActivity extends LayoutGameActivity {
     }
 
     protected void setHighScore(int score) {
-        if (highscore < score) {
+        //if (highscore != score) {
             highscore = score;
             preferences.edit().putInt("highscore", highscore);
             preferences.edit().commit();
-            highscoreText.setText("highscore: " + highscore);
-        }
+            highscoreText.setText("Score: " + highscore);
+        //}
     }
 
 
@@ -254,7 +284,7 @@ public class GameActivity extends LayoutGameActivity {
     
     protected int getProgress() {
         if (startTime == 0) return 0;
-        return (int) ((new Date().getTime() - startTime) / 10f * ROUND_TIME);
+        return (int) Math.abs(100 - getTimeLeft() * 100f / ROUND_TIME);
     }
     
     protected boolean hasStarted() {
@@ -267,8 +297,8 @@ public class GameActivity extends LayoutGameActivity {
     }
     
     private float getProbability(boolean front) {
-        float extra = 0.01f;
-        return (front ? 0.005f : .0005f) + extra;
+        float extra = 0.05f * getProgress() / 100;
+        return (front ? 0.005f : .0007f) + extra;
     }
 
     @Override
@@ -290,15 +320,24 @@ public class GameActivity extends LayoutGameActivity {
             @Override
             public void onModifierStarted(IModifier<IEntity> pModifier, IEntity pItem) {
                 animation = true;
+                overlay.getFirstChild().setVisible(false);
+                overlay.getLastChild().setVisible(false);
             }
 
             @Override
             public void onModifierFinished(IModifier<IEntity> pModifier, IEntity pItem) {
                 started = true;
+                score = 0;
                 startTime = new Date().getTime();
                 animation = false;
+                overlay.setVisible(false);
+
+                scene.clearTouchAreas();
+                for (Target target : targets) {
+                    scene.registerTouchArea(target);
+                }
             }
-        }, new AlphaModifier(1, .5f, 0)));
+        }, new AlphaModifier(.5f, .5f, 0)));
     }
 
     public void stop() {
@@ -308,7 +347,21 @@ public class GameActivity extends LayoutGameActivity {
 
     private Rectangle getOverlay() {
         if (overlay == null) {
-            overlay = new Rectangle(0, 0, width, height) {
+            overlay = new Rectangle(0, 0, width, height);
+            overlay.setAlpha(.5f);
+            overlay.setColor(0, 0, 0);
+            overlay.setZIndex(10);
+
+            ChangeableText shareButton = new ChangeableText(100, 200, mFont, "Share") {
+                @Override
+                public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
+                    share();
+                    return true;
+                }
+            };
+            overlay.attachChild(shareButton);
+
+            ChangeableText startButton = new ChangeableText(500, 200, mFont, "Start") {
                 @Override
                 public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
                     if (animation) return false;
@@ -316,11 +369,25 @@ public class GameActivity extends LayoutGameActivity {
                     return true;
                 }
             };
-            overlay.setAlpha(.5f);
-            overlay.setColor(0, 0, 0);
-            overlay.setZIndex(10);
+            overlay.attachChild(startButton);
         }
         return overlay;
+    }
+
+
+    private void share() {
+        //create the intent
+        Intent shareIntent = new Intent(android.content.Intent.ACTION_SEND);
+        //set the type
+        shareIntent.setType("text/plain");
+        //add a subject
+        shareIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Hit the Zombie");
+        //build the body of the message to be shared
+        String shareMessage = "Take a look at the \"Hit the Zombie\" game on android market";
+        //add the message
+        shareIntent.putExtra(android.content.Intent.EXTRA_TEXT,shareMessage);
+        //start the chooser for sharing
+        startActivity(Intent.createChooser(shareIntent, "Insert share chooser title here"));
     }
 
 }
