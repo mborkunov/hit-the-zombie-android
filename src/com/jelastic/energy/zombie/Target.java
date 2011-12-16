@@ -109,8 +109,7 @@ public class Target extends TiledSprite {
                 GameActivity.hitSound.play();
                 GameActivity.self.setScore(GameActivity.self.getScore() + 10);
             } else {
-                if (!hit) {
-                    hit = true;
+                if (pSceneTouchEvent.isActionDown()) {
                     GameActivity.failSound.play();
                     GameActivity.self.setScore(GameActivity.self.getScore() - 5);
                 }

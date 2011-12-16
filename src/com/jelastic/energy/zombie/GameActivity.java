@@ -50,6 +50,7 @@ public class GameActivity extends LayoutGameActivity {
     // sounds
     protected static Sound failSound;
     protected static Sound hitSound;
+    protected static Sound startSound;
 
     private static final int COLS = 5;
     private static final int ROWS = 3;
@@ -128,6 +129,7 @@ public class GameActivity extends LayoutGameActivity {
         try {
             hitSound = SoundFactory.createSoundFromAsset(this.mEngine.getSoundManager(), this, "hit.ogg");
             failSound = SoundFactory.createSoundFromAsset(this.mEngine.getSoundManager(), this, "fail.ogg");
+            startSound = SoundFactory.createSoundFromAsset(this.mEngine.getSoundManager(), this, "start.ogg");
         } catch (final Throwable e) {
             Debug.e(e);
         }
@@ -355,6 +357,7 @@ public class GameActivity extends LayoutGameActivity {
             ChangeableText shareButton = new ChangeableText(100, 200, mFont, "Share") {
                 @Override
                 public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
+                    startSound.play();
                     share();
                     return true;
                 }
@@ -365,6 +368,7 @@ public class GameActivity extends LayoutGameActivity {
                 @Override
                 public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
                     if (animation) return false;
+                    startSound.play();
                     start();
                     return true;
                 }
