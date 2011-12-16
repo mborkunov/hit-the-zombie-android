@@ -54,7 +54,6 @@ public class GameActivity extends LayoutGameActivity {
 
     private static final int COLS = 5;
     private static final int ROWS = 3;
-    private TextureRegion backgroundTexture;
 
     private List<Target> targets = new ArrayList<Target>(15);
     private int width;
@@ -63,6 +62,9 @@ public class GameActivity extends LayoutGameActivity {
     private SharedPreferences preferences;
 
     private Font mFont;
+
+    private TextureRegion backgroundTexture;
+    private TextureRegion shareTexture;
     private TiledTextureRegion targetTiles;
 
     private Rectangle overlay;
@@ -79,6 +81,8 @@ public class GameActivity extends LayoutGameActivity {
     private long startTime = 0;
 
     public static GameActivity self;
+    ;
+
     {
         self = this;
     }
@@ -115,14 +119,17 @@ public class GameActivity extends LayoutGameActivity {
         // textures
         BitmapTextureAtlas targetTextureAtlas = new BitmapTextureAtlas(2048, 256, TextureOptions.BILINEAR);
         BitmapTextureAtlas backgroundTextureAtlas = new BitmapTextureAtlas(2048, 2048, TextureOptions.BILINEAR);
+        BitmapTextureAtlas shareTextureAtlas = new BitmapTextureAtlas(256, 256, TextureOptions.BILINEAR);
 
         BitmapTextureAtlasTextureRegionFactory.setAssetBasePath("gfx/");
 
         this.targetTiles = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(targetTextureAtlas, this, "tiles.png", 0, 0, 7, 1);
         this.backgroundTexture = BitmapTextureAtlasTextureRegionFactory.createFromAsset(backgroundTextureAtlas, this, "cemetery.png", 0, 0);
+        this.shareTexture = BitmapTextureAtlasTextureRegionFactory.createFromAsset(shareTextureAtlas, this, "share.png", 0, 0);
 
         this.mEngine.getTextureManager().loadTexture(targetTextureAtlas);
         this.mEngine.getTextureManager().loadTexture(backgroundTextureAtlas);
+        this.mEngine.getTextureManager().loadTexture(shareTextureAtlas);
 
         // sounds
         SoundFactory.setAssetBasePath("sounds/");
@@ -174,11 +181,10 @@ public class GameActivity extends LayoutGameActivity {
                 this.targets.add(targetSprite);
             }
         }
-        float sx = width / (float) backgroundTexture.getWidth(), sy = height / (float) backgroundTexture.getHeight();
+        float scaleX = width / (float) backgroundTexture.getWidth(), scaleY = height / (float) backgroundTexture.getHeight();
         Sprite bgSprite = new Sprite(0, 0, this.backgroundTexture);
-        bgSprite.setScale(sx, sy);
-        bgSprite.setWidth(width);
-        bgSprite.setHeight(height);
+        bgSprite.setScaleCenter(0, 0);
+        bgSprite.setScale(scaleX, scaleY);
         scene.setBackground(new SpriteBackground(bgSprite));
         scene.registerUpdateHandler(new IUpdateHandler() {
             private float elapsed = 0;
@@ -354,7 +360,7 @@ public class GameActivity extends LayoutGameActivity {
             overlay.setColor(0, 0, 0);
             overlay.setZIndex(10);
 
-            ChangeableText shareButton = new ChangeableText(100, 200, mFont, "Share") {
+            Sprite shareButton = new Sprite(0, 0, this.shareTexture) {
                 @Override
                 public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
                     startSound.play();
@@ -362,6 +368,11 @@ public class GameActivity extends LayoutGameActivity {
                     return true;
                 }
             };
+            shareButton.setPosition(width - shareButton.getWidth(), height - shareButton.getHeight());
+            float scale = (height / 3) * 100f / shareButton.getHeight();
+            shareButton.setScaleCenter(shareButton.getWidth(), shareButton.getHeight());
+            shareButton.setScale(scale / 100f);
+
             overlay.attachChild(shareButton);
 
             ChangeableText startButton = new ChangeableText(500, 200, mFont, "Start") {
