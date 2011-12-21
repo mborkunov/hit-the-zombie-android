@@ -4,18 +4,19 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.view.Display;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import com.google.ads.AdRequest;
 import com.google.ads.AdView;
-import org.anddev.andengine.audio.sound.Sound;
-import org.anddev.andengine.audio.sound.SoundFactory;
 import org.anddev.andengine.engine.Engine;
 import org.anddev.andengine.engine.camera.Camera;
-import org.anddev.andengine.engine.handler.IUpdateHandler;
 import org.anddev.andengine.engine.options.EngineOptions;
 import org.anddev.andengine.engine.options.resolutionpolicy.RatioResolutionPolicy;
 import org.anddev.andengine.entity.IEntity;
 import org.anddev.andengine.entity.modifier.AlphaModifier;
 import org.anddev.andengine.entity.modifier.IEntityModifier;
+import org.anddev.andengine.entity.modifier.ScaleModifier;
 import org.anddev.andengine.entity.modifier.SequenceEntityModifier;
 import org.anddev.andengine.entity.primitive.Rectangle;
 import org.anddev.andengine.entity.scene.Scene;
@@ -28,29 +29,30 @@ import org.anddev.andengine.extension.input.touch.controller.MultiTouchControlle
 import org.anddev.andengine.extension.input.touch.exception.MultiTouchException;
 import org.anddev.andengine.input.touch.TouchEvent;
 import org.anddev.andengine.opengl.font.Font;
-import org.anddev.andengine.opengl.font.FontFactory;
-import org.anddev.andengine.opengl.texture.TextureOptions;
-import org.anddev.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlas;
-import org.anddev.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlasTextureRegionFactory;
 import org.anddev.andengine.opengl.texture.region.TextureRegion;
 import org.anddev.andengine.opengl.texture.region.TiledTextureRegion;
 import org.anddev.andengine.ui.activity.LayoutGameActivity;
 import org.anddev.andengine.util.Debug;
 import org.anddev.andengine.util.HorizontalAlign;
-import org.anddev.andengine.util.MathUtils;
-import org.anddev.andengine.util.SimplePreferences;
 import org.anddev.andengine.util.modifier.IModifier;
+import org.anddev.andengine.util.modifier.ease.EaseBounceOut;
+import org.anddev.andengine.util.modifier.ease.EaseStrongOut;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
-public class GameActivity extends LayoutGameActivity {
+public class GameActivity extends LayoutGameActivity implements Observer {
 
     // sounds
-    protected static Sound failSound;
-    protected static Sound hitSound;
-    protected static Sound startSound;
+    protected static GameSound failSound;
+    protected static GameSound hitSound;
+    protected static GameSound startSound;
+
+    protected static Font mFont;
+
+    protected static TextureRegion bgTexture;
+    protected static TextureRegion shareTexture;
+    protected static TiledTextureRegion targetTiles;
+    protected static TextureRegion startTexture;
 
     private static final int COLS = 5;
     private static final int ROWS = 3;
@@ -59,29 +61,21 @@ public class GameActivity extends LayoutGameActivity {
     private int width;
     private int height;
 
-    private SharedPreferences preferences;
-
-    private Font mFont;
-
-    private TextureRegion backgroundTexture;
-    private TextureRegion shareTexture;
-    private TiledTextureRegion targetTiles;
-
-    private Rectangle overlay;
+    private Overlay overlay;
     private Scene scene;
 
     protected int score;
-    protected int highscore;
 
     private ChangeableText scoreText;
-    private ChangeableText highscoreText;
     private ChangeableText timerText;
     
     private final static int ROUND_TIME = 60;
     private long startTime = 0;
 
     public static GameActivity self;
-    ;
+    private SharedPreferences settings;
+    private boolean sound = true;
+    private float startScale;
 
     {
         self = this;
@@ -89,10 +83,10 @@ public class GameActivity extends LayoutGameActivity {
 
     @Override
     public Engine onLoadEngine() {
-        this.preferences = SimplePreferences.getInstance(this.getApplicationContext());
         Display display = getWindowManager().getDefaultDisplay();
         this.width = display.getWidth();
         this.height = display.getHeight();
+        settings = getSharedPreferences("zombie.dat", 0);
 
         final Camera camera = new Camera(0, 0, width, height);
         return new Engine(new EngineOptions(true, EngineOptions.ScreenOrientation.LANDSCAPE, new RatioResolutionPolicy(width, height), camera).setNeedsSound(true));
@@ -102,6 +96,7 @@ public class GameActivity extends LayoutGameActivity {
     protected int getLayoutID() {
         return R.layout.main;
     }
+
 
     @Override
     protected int getRenderSurfaceViewID() {
@@ -116,44 +111,27 @@ public class GameActivity extends LayoutGameActivity {
     public void onLoadResources() {
         this.mEngine.registerUpdateHandler(new FPSLogger());
 
+        Resources.init();
+
         // textures
-        BitmapTextureAtlas targetTextureAtlas = new BitmapTextureAtlas(2048, 256, TextureOptions.BILINEAR);
-        BitmapTextureAtlas backgroundTextureAtlas = new BitmapTextureAtlas(2048, 2048, TextureOptions.BILINEAR);
-        BitmapTextureAtlas shareTextureAtlas = new BitmapTextureAtlas(256, 256, TextureOptions.BILINEAR);
-
-        BitmapTextureAtlasTextureRegionFactory.setAssetBasePath("gfx/");
-
-        this.targetTiles = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(targetTextureAtlas, this, "tiles.png", 0, 0, 7, 1);
-        this.backgroundTexture = BitmapTextureAtlasTextureRegionFactory.createFromAsset(backgroundTextureAtlas, this, "cemetery.png", 0, 0);
-        this.shareTexture = BitmapTextureAtlasTextureRegionFactory.createFromAsset(shareTextureAtlas, this, "share.png", 0, 0);
-
-        this.mEngine.getTextureManager().loadTexture(targetTextureAtlas);
-        this.mEngine.getTextureManager().loadTexture(backgroundTextureAtlas);
-        this.mEngine.getTextureManager().loadTexture(shareTextureAtlas);
+        bgTexture    = Resources.loadTexture(this, "cemetery.png", 512, 512);
+        shareTexture = Resources.loadTexture(this, "share.png", 256, 256);
+        startTexture = Resources.loadTexture(this, "start.png", 256, 64);
+        targetTiles  = Resources.loadTexture(this, "tiles.png", 1024, 128, 7, 1);
 
         // sounds
-        SoundFactory.setAssetBasePath("sounds/");
-        try {
-            hitSound = SoundFactory.createSoundFromAsset(this.mEngine.getSoundManager(), this, "hit.ogg");
-            failSound = SoundFactory.createSoundFromAsset(this.mEngine.getSoundManager(), this, "fail.ogg");
-            startSound = SoundFactory.createSoundFromAsset(this.mEngine.getSoundManager(), this, "start.ogg");
-        } catch (final Throwable e) {
-            Debug.e(e);
-        }
+        hitSound   = Resources.loadSound("hit.ogg", this);
+        failSound  = Resources.loadSound("fail.ogg", this);
+        startSound = Resources.loadSound("start.ogg", this);
 
-        // multi touch
+        // font
+        mFont = Resources.loadFont(this, "andy.ttf", 512, 256, height / 10, Color.YELLOW);
+
         try {
             this.mEngine.setTouchController(new MultiTouchController());
         } catch (MultiTouchException e) {
             Debug.e(e);
         }
-
-        // fonts
-        FontFactory.setAssetBasePath("font/");
-        BitmapTextureAtlas mFontTexture = new BitmapTextureAtlas(512, 256, TextureOptions.BILINEAR);
-        mFont = FontFactory.createFromAsset(mFontTexture, this.getApplicationContext(), "andy.ttf", height / 10, true, Color.YELLOW);
-        mEngine.getTextureManager().loadTexture(mFontTexture);
-        mEngine.getFontManager().loadFont(mFont);
     }
 
     @Override
@@ -163,12 +141,18 @@ public class GameActivity extends LayoutGameActivity {
 
         int topOffset = height - ((getTargetSize() + dy) * 3) - (int) (height * .05);
         int leftOffset = (width - (5 * (size + dx))) / 2;
+        int topTextOffset = height / 80;
 
         final Scene scene = new Scene();
 
-        highscoreText = new ChangeableText(leftOffset, 10, mFont, "Score: " + getHighScore() + "    ");
-        timerText = new ChangeableText(150, 50, mFont, String.valueOf(100 - getProgress()), HorizontalAlign.RIGHT, 4);
-        scene.attachChild(highscoreText);
+        if (settings.contains("score")) {
+            score = settings.getInt("score", 0);
+        }
+
+        scoreText = new ChangeableText(leftOffset, topTextOffset, mFont, "Score: " + getScore(), 11);
+        timerText = new ChangeableText(scoreText.getWidth() + leftOffset, topTextOffset, mFont, " " + getTimeLeft() + " sec", HorizontalAlign.RIGHT, 7);
+        timerText.setVisible(false);
+        scene.attachChild(scoreText);
         scene.attachChild(timerText);
         for (int j = 0; j < ROWS; j++) {
             for (int i = 0; i < COLS; i++) {
@@ -179,76 +163,21 @@ public class GameActivity extends LayoutGameActivity {
                 targetSprite.setZIndex(2);
                 scene.attachChild(targetSprite);
                 this.targets.add(targetSprite);
+                Game.getInstance().addTarget(targetSprite);
             }
         }
-        float scaleX = width / (float) backgroundTexture.getWidth(), scaleY = height / (float) backgroundTexture.getHeight();
-        Sprite bgSprite = new Sprite(0, 0, this.backgroundTexture);
+        float scaleX = width / (float) bgTexture.getWidth(), scaleY = height / (float) bgTexture.getHeight();
+        Sprite bgSprite = new Sprite(0, 0, this.bgTexture);
         bgSprite.setScaleCenter(0, 0);
         bgSprite.setScale(scaleX, scaleY);
         scene.setBackground(new SpriteBackground(bgSprite));
-        scene.registerUpdateHandler(new IUpdateHandler() {
-            private float elapsed = 0;
-            @Override
-            public void onUpdate(float pSecondsElapsed) {
-                if (!started) {
-                    return;
-                }
-
-                timerText.setText(String.valueOf(100 - getProgress()));
-
-                elapsed += pSecondsElapsed;
-                if (elapsed < .02) {
-                    return;
-                } else {
-                    elapsed = 0;
-                }
-                List<Target> sleeping = getSleepTargets();
-                if (!sleeping.isEmpty()) {
-                    for (Target target : sleeping) {
-                        float probability = getProbability(target.front);
-
-                        if (!target.front && ((new Date().getTime()) - target.stopTime) < 1000) {
-                            continue;
-                        }
-
-                        if (Math.random() < probability) {
-                            target.rotate(MathUtils.random(0, 5));
-                        }
-                    }
-                }
-
-                if (getTimeLeft() == 0) {
-                    started = false;
-                    overlay.setVisible(true);
-                    overlay.registerEntityModifier(new SequenceEntityModifier(new IEntityModifier.IEntityModifierListener() {
-
-                        @Override
-                        public void onModifierStarted(IModifier<IEntity> pModifier, IEntity pItem) {
-                            animation = true;
-                        }
-
-                        @Override
-                        public void onModifierFinished(IModifier<IEntity> pModifier, IEntity pItem) {
-                            animation = false;
-
-                            overlay.getFirstChild().setVisible(true);
-                            overlay.getLastChild().setVisible(true);
-                            scene.clearTouchAreas();
-                            scene.registerTouchArea((Shape) getOverlay().getFirstChild());
-                            scene.registerTouchArea((Shape) getOverlay().getLastChild());
-                        }
-                    }, new AlphaModifier(.5f, 0, .5f)));
-                }
-            }
-
-            @Override
-            public void reset() {
-            }
-        });
+        scene.registerUpdateHandler(Game.getInstance().getUpdateHandler());
         scene.attachChild(getOverlay());
         scene.registerTouchArea((Shape) getOverlay().getFirstChild());
         scene.registerTouchArea((Shape) getOverlay().getLastChild());
         this.scene = scene;
+
+        Game.getInstance().addObserver(this);
 
         return scene;
     }
@@ -264,26 +193,12 @@ public class GameActivity extends LayoutGameActivity {
     }
     
     protected void setScore(int score) {
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putInt("score", score);
+        editor.commit();
         this.score = Math.max(0, score);
-        setHighScore(this.score);
-    }
-
-    protected void setHighScore(int score) {
-        //if (highscore != score) {
-            highscore = score;
-            preferences.edit().putInt("highscore", highscore);
-            preferences.edit().commit();
-            highscoreText.setText("Score: " + highscore);
-        //}
-    }
-
-
-    public boolean hasHighScore() {
-        return preferences.contains("highscore");
-    }
-
-    public int getHighScore() {
-        return hasHighScore() ? preferences.getInt("highscore", 0) : 0;
+        scoreText.setText("Score: " + getScore());
+        timerText.setPosition(scoreText.getWidth() + scoreText.getX(), scoreText.getY());
     }
 
     protected int getScore() {
@@ -300,8 +215,8 @@ public class GameActivity extends LayoutGameActivity {
     }
 
     protected int getTimeLeft() {
-        if (!hasStarted()) return -1;
-        return Math.abs(ROUND_TIME - (int) (new Date().getTime() - startTime) / 1000);
+        if (!hasStarted()) return 60;
+        return Math.abs(ROUND_TIME - (int) (System.currentTimeMillis() - startTime) / 1000);
     }
     
     private float getProbability(boolean front) {
@@ -317,6 +232,13 @@ public class GameActivity extends LayoutGameActivity {
 
         AdRequest request = new AdRequest();
         adView.loadAd(request);
+
+        IEntity btn = getOverlay().getFirstChild();
+        float _scaleX = btn.getScaleX();
+        btn.setScale(0);
+        btn.registerEntityModifier(new ScaleModifier(1.5f, 0f, _scaleX, EaseBounceOut.getInstance()));
+
+        sound = settings.getBoolean("sound", true);
     }
 
     private boolean started = false;
@@ -328,7 +250,6 @@ public class GameActivity extends LayoutGameActivity {
             @Override
             public void onModifierStarted(IModifier<IEntity> pModifier, IEntity pItem) {
                 animation = true;
-                overlay.getFirstChild().setVisible(false);
                 overlay.getLastChild().setVisible(false);
             }
 
@@ -338,6 +259,7 @@ public class GameActivity extends LayoutGameActivity {
                 score = 0;
                 startTime = new Date().getTime();
                 animation = false;
+                timerText.setVisible(true);
                 overlay.setVisible(false);
 
                 scene.clearTouchAreas();
@@ -350,19 +272,32 @@ public class GameActivity extends LayoutGameActivity {
 
     public void stop() {
         started = false;
-        //getOverlay().registerEntityModifier(new AlphaModifier(1, 0, .5f));
     }
 
     private Rectangle getOverlay() {
         if (overlay == null) {
-            overlay = new Rectangle(0, 0, width, height);
-            overlay.setAlpha(.5f);
-            overlay.setColor(0, 0, 0);
-            overlay.setZIndex(10);
+            overlay = new Overlay(0, 0, width, height);
+
+            Sprite startButton = new Sprite(500, 200, startTexture) {
+                @Override
+                public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
+                    if (animation) return false;
+                    startSound.play();
+                    registerEntityModifier(new ScaleModifier(.5f, getScaleX(), 0, EaseStrongOut.getInstance()));
+                    start();
+                    return true;
+                }
+            };
+            startScale = width / (4 * startButton.getWidth()) ;
+            startButton.setPosition((width - startButton.getWidth())/ 2 , (height - startButton.getHeight())/ 2);
+            startButton.setScale(startScale);
+
+            overlay.attachChild(startButton);
 
             Sprite shareButton = new Sprite(0, 0, this.shareTexture) {
                 @Override
                 public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
+                    if (!pSceneTouchEvent.isActionDown()) return false;
                     startSound.play();
                     share();
                     return true;
@@ -374,35 +309,58 @@ public class GameActivity extends LayoutGameActivity {
             shareButton.setScale(scale / 100f);
 
             overlay.attachChild(shareButton);
-
-            ChangeableText startButton = new ChangeableText(500, 200, mFont, "Start") {
-                @Override
-                public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
-                    if (animation) return false;
-                    startSound.play();
-                    start();
-                    return true;
-                }
-            };
-            overlay.attachChild(startButton);
         }
         return overlay;
     }
 
 
     private void share() {
-        //create the intent
         Intent shareIntent = new Intent(android.content.Intent.ACTION_SEND);
-        //set the type
         shareIntent.setType("text/plain");
-        //add a subject
         shareIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Hit the Zombie");
-        //build the body of the message to be shared
-        String shareMessage = "Take a look at the \"Hit the Zombie\" game on android market";
-        //add the message
-        shareIntent.putExtra(android.content.Intent.EXTRA_TEXT,shareMessage);
-        //start the chooser for sharing
+        String shareMessage = "Take a look at the \"Hit the Zombie\" game on android market\nhttps://market.android.com/details?id=com.jelastic.energy.zombie";
+        shareIntent.putExtra(android.content.Intent.EXTRA_TEXT, shareMessage);
         startActivity(Intent.createChooser(shareIntent, "Insert share chooser title here"));
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = getMenuInflater();
+        menuInflater.inflate(R.menu.settings, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.sound:
+                setSound(!isSound());
+                item.setTitle(isSound() ? R.string.sound_off : R.string.sound_on);
+                SharedPreferences.Editor editor = settings.edit();
+                editor.putBoolean("sound", isSound());
+                editor.commit();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    public boolean isSound() {
+        return sound;
+    }
+
+    public void setSound(boolean sound) {
+        this.sound = sound;
+    }
+
+    @Override
+    public void update(Observable observable, Object o) {
+        Game game = (Game) observable;
+
+        if (game.isStarted()) {
+            overlay.show();
+        } else {
+            overlay.hide();
+        }
+    }
 }

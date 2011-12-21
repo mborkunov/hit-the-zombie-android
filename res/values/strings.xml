@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Hit the Zombie</string>
+
+    <string name="quality_low">Quality - Low</string>
+    <string name="quality_high">Quality - High</string>
+
+    <string name="sound_on">Sound On</string>
+    <string name="sound_off">Sound Off</string>
 </resources>

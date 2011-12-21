@@ -28,7 +28,7 @@ public class Target extends TiledSprite {
                 rotate(1);
             }
 
-            if (!isRotating()) return;
+            if (!isRotating())return;
 
             if (angle >= 360) {
                 angle %= 360;
@@ -45,17 +45,24 @@ public class Target extends TiledSprite {
             if (currentTurn <= turns) {
                 if ((this.angle < 90 && this.angle + step >= 90)) {
                     front = false;
+                    hit  = false;
+                    miss = false;
                     setFlippedHorizontal(MathUtils.random(0, 1) == 1);
                     if (!front) {
                         setCurrentTileIndex(MathUtils.random(1, 3));
                     }
                 } else if (this.angle < 270 && this.angle + step >= 270) {
                     front = true;
+                    hit  = false;
+                    miss = false;
                     setFlippedHorizontal(MathUtils.random(0, 1) == 1);
                     setCurrentTileIndex(0);
                 }
                 this.angle += step;
-                hit = false;
+
+                if (!isRotating()) {
+                    angle -= angle % 180;
+                }
                 setScale(Math.abs((float) Math.cos(this.angle * Math.PI / 180)), 1f);
             }
         }
@@ -76,6 +83,8 @@ public class Target extends TiledSprite {
     protected boolean front = true;
     protected long stopTime = new Date().getTime();
     private boolean hit = false;
+    private boolean miss = false;
+
 
 
     public Target(float pX, float pY, TiledTextureRegion pTiledTextureRegion) {
@@ -102,19 +111,27 @@ public class Target extends TiledSprite {
 
     @Override
     public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
-        if (!isRotating()) {
-            if (!front) {
-                setCurrentTileIndex(getCurrentTileIndex() + 3);
-                rotate(1);
-                GameActivity.hitSound.play();
-                GameActivity.self.setScore(GameActivity.self.getScore() + 10);
-            } else {
-                if (pSceneTouchEvent.isActionDown()) {
-                    GameActivity.failSound.play();
-                    GameActivity.self.setScore(GameActivity.self.getScore() - 5);
-                }
-            }
+        if (!pSceneTouchEvent.isActionDown()) return true;
+        if (!front) {
+            hit();
+        } else {
+            miss();
         }
         return true;
+    }
+
+    private void hit() {
+        hit = true;
+        setCurrentTileIndex(getCurrentTileIndex() + 3);
+        rotate(1);
+
+        GameActivity.hitSound.play();
+        GameActivity.self.setScore(GameActivity.self.getScore() + 10);
+    }
+
+    private void miss()  {
+        miss = true;
+        GameActivity.failSound.play();
+        GameActivity.self.setScore(GameActivity.self.getScore() - 5);
     }
 }
