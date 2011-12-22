@@ -33,8 +33,8 @@ public class Resources {
     public static boolean fontAntiAliasing;
 
     public static void init() {
-        textureOptions = TextureOptions.BILINEAR;
-        fontAntiAliasing = true;
+        textureOptions = GameActivity.self.isQuality() ? TextureOptions.BILINEAR : TextureOptions.NEAREST;
+        fontAntiAliasing = GameActivity.self.isQuality();
 
         BitmapTextureAtlasTextureRegionFactory.setAssetBasePath("gfx/");
         SoundFactory.setAssetBasePath("sounds/");
@@ -43,6 +43,10 @@ public class Resources {
         Sound.FAIL.load();
         Sound.HIT.load();
         Sound.START.load();
+    }
+
+    public void loadTextures() {
+        
     }
 
     public static TiledTextureRegion loadTexture(BaseGameActivity ctx, String path, int atlasWidth, int atlasHeight, int cols, int rows) {

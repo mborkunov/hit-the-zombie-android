@@ -11,7 +11,7 @@ import com.google.ads.AdView;
 import org.anddev.andengine.engine.Engine;
 import org.anddev.andengine.engine.camera.Camera;
 import org.anddev.andengine.engine.options.EngineOptions;
-import org.anddev.andengine.engine.options.resolutionpolicy.RatioResolutionPolicy;
+import org.anddev.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
 import org.anddev.andengine.entity.scene.Scene;
 import org.anddev.andengine.entity.scene.background.SpriteBackground;
 import org.anddev.andengine.entity.sprite.Sprite;
@@ -31,17 +31,12 @@ import java.util.Observer;
 
 public class GameActivity extends LayoutGameActivity implements Observer {
 
-    // sounds
-    //protected static GameSound failSound;
-    //protected static GameSound hitSound;
-    //protected static GameSound startSound;
+    protected Font mFont;
 
-    protected static Font mFont;
-
-    protected static TextureRegion bgTexture;
-    protected static TextureRegion shareTexture;
-    protected static TiledTextureRegion targetTiles;
-    protected static TextureRegion startTexture;
+    protected TextureRegion bgTexture;
+    protected TextureRegion shareTexture;
+    protected TiledTextureRegion targetTiles;
+    protected TextureRegion startTexture;
 
     private int width;
     private int height;
@@ -56,7 +51,6 @@ public class GameActivity extends LayoutGameActivity implements Observer {
 
     public static GameActivity self;
     private SharedPreferences settings;
-    private boolean sound = true;
 
     {
         self = this;
@@ -65,13 +59,14 @@ public class GameActivity extends LayoutGameActivity implements Observer {
     @Override
     public Engine onLoadEngine() {
         Display display = getWindowManager().getDefaultDisplay();
+        
         this.width = display.getWidth();
         this.height = display.getHeight();
         settings = getSharedPreferences("zombie.dat", 0);
 
         final Camera camera = new Camera(0, 0, width, height);
-        return new Engine(new EngineOptions(true, EngineOptions.ScreenOrientation.LANDSCAPE, new RatioResolutionPolicy(width, height), camera).setNeedsSound(true));
-    }
+        return new Engine(new EngineOptions(true, EngineOptions.ScreenOrientation.LANDSCAPE, new FillResolutionPolicy(), camera).setNeedsSound(true));
+   }
 
     @Override
     protected int getLayoutID() {
@@ -81,7 +76,7 @@ public class GameActivity extends LayoutGameActivity implements Observer {
 
     @Override
     protected int getRenderSurfaceViewID() {
-        return R.id.xmllayoutexample_rendersurfaceview;
+        return R.id.render;
     }
 
     private int getTargetSize() {
@@ -90,7 +85,7 @@ public class GameActivity extends LayoutGameActivity implements Observer {
 
     @Override
     public void onLoadResources() {
-        this.mEngine.registerUpdateHandler(new FPSLogger());
+        mEngine.registerUpdateHandler(new FPSLogger());
 
         Resources.init();
 
@@ -100,12 +95,11 @@ public class GameActivity extends LayoutGameActivity implements Observer {
         startTexture = Resources.loadTexture(this, "start.png", 256, 64);
         targetTiles  = Resources.loadTexture(this, "tiles.png", 1024, 128, 7, 1);
 
-
         // font
         mFont = Resources.loadFont(this, "andy.ttf", 512, 256, height / 10, Color.YELLOW);
 
         try {
-            this.mEngine.setTouchController(new MultiTouchController());
+            mEngine.setTouchController(new MultiTouchController());
         } catch (MultiTouchException e) {
             Debug.e(e);
         }
@@ -131,6 +125,7 @@ public class GameActivity extends LayoutGameActivity implements Observer {
         timerText.setVisible(false);
         scene.attachChild(scoreText);
         scene.attachChild(timerText);
+        Game.getInstance().getTargets().clear();
         for (int j = 0; j < Game.ROWS; j++) {
             for (int i = 0; i < Game.COLS; i++) {
                 final Target targetSprite = new Target(leftOffset + (size + dx) * i, topOffset + (size + dy) * j, targetTiles.deepCopy());
@@ -177,7 +172,7 @@ public class GameActivity extends LayoutGameActivity implements Observer {
         adView.loadAd(request);
 
         overlay.onLoad();
-        sound = settings.getBoolean("sound", true);
+        settings.getBoolean("sound", true);
     }
 
     @Override
@@ -193,21 +188,34 @@ public class GameActivity extends LayoutGameActivity implements Observer {
             case R.id.sound:
                 setSound(!isSound());
                 item.setTitle(isSound() ? R.string.sound_off : R.string.sound_on);
-                SharedPreferences.Editor editor = settings.edit();
-                editor.putBoolean("sound", isSound());
-                editor.commit();
+                return true;
+            case R.id.quality:
+                setQuality(!isQuality());
+                item.setTitle(isQuality() ? R.string.quality_high : R.string.quality_low);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
+    public void setQuality(boolean quality) {
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putBoolean("quality", quality);
+        editor.commit();
+    }
+
+    public boolean isQuality() {
+        return settings.getBoolean("quality", true);
+    }
+
     public boolean isSound() {
-        return sound;
+        return settings.getBoolean("sound", true);
     }
 
     public void setSound(boolean sound) {
-        this.sound = sound;
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putBoolean("sound", sound);
+        editor.commit();
     }
 
     @Override

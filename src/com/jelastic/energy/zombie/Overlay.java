@@ -28,7 +28,7 @@ public class Overlay extends Rectangle {
         
         int width = GameActivity.self.getWidth(), height = GameActivity.self.getHeight();
 
-        startButton = new Sprite(500, 200, GameActivity.startTexture) {
+        startButton = new Sprite(500, 200, GameActivity.self.startTexture) {
             @Override
             public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
                 if (!pSceneTouchEvent.isActionDown()) {
@@ -46,7 +46,7 @@ public class Overlay extends Rectangle {
 
         attachChild(startButton);
 
-        shareButton = new Sprite(0, 0, GameActivity.shareTexture) {
+        shareButton = new Sprite(0, 0, GameActivity.self.shareTexture) {
             @Override
             public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
                 if (!pSceneTouchEvent.isActionDown()) return false;

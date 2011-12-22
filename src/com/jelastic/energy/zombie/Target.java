@@ -45,16 +45,12 @@ public class Target extends TiledSprite {
             if (currentTurn <= turns) {
                 if ((this.angle < 90 && this.angle + step >= 90)) {
                     front = false;
-                    hit  = false;
-                    miss = false;
                     setFlippedHorizontal(MathUtils.random(0, 1) == 1);
                     if (!front) {
                         setCurrentTileIndex(MathUtils.random(1, 3));
                     }
                 } else if (this.angle < 270 && this.angle + step >= 270) {
                     front = true;
-                    hit  = false;
-                    miss = false;
                     setFlippedHorizontal(MathUtils.random(0, 1) == 1);
                     setCurrentTileIndex(0);
                 }
@@ -82,10 +78,6 @@ public class Target extends TiledSprite {
     private int turns = 0;
     protected boolean front = true;
     protected long stopTime = new Date().getTime();
-    private boolean hit = false;
-    private boolean miss = false;
-
-
 
     public Target(float pX, float pY, TiledTextureRegion pTiledTextureRegion) {
         super(pX, pY, pTiledTextureRegion);
@@ -121,7 +113,6 @@ public class Target extends TiledSprite {
     }
 
     private void hit() {
-        hit = true;
         setCurrentTileIndex(getCurrentTileIndex() + 3);
         rotate(1);
 
@@ -130,7 +121,6 @@ public class Target extends TiledSprite {
     }
 
     private void miss()  {
-        miss = true;
         Resources.Sound.FAIL.play();
         GameActivity.self.setScore(GameActivity.self.getScore() - 5);
     }
