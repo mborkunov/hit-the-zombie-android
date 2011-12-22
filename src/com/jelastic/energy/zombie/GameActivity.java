@@ -1,6 +1,5 @@
 package com.jelastic.energy.zombie;
 
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.view.Display;
@@ -13,39 +12,29 @@ import org.anddev.andengine.engine.Engine;
 import org.anddev.andengine.engine.camera.Camera;
 import org.anddev.andengine.engine.options.EngineOptions;
 import org.anddev.andengine.engine.options.resolutionpolicy.RatioResolutionPolicy;
-import org.anddev.andengine.entity.IEntity;
-import org.anddev.andengine.entity.modifier.AlphaModifier;
-import org.anddev.andengine.entity.modifier.IEntityModifier;
-import org.anddev.andengine.entity.modifier.ScaleModifier;
-import org.anddev.andengine.entity.modifier.SequenceEntityModifier;
-import org.anddev.andengine.entity.primitive.Rectangle;
 import org.anddev.andengine.entity.scene.Scene;
 import org.anddev.andengine.entity.scene.background.SpriteBackground;
-import org.anddev.andengine.entity.shape.Shape;
 import org.anddev.andengine.entity.sprite.Sprite;
 import org.anddev.andengine.entity.text.ChangeableText;
 import org.anddev.andengine.entity.util.FPSLogger;
 import org.anddev.andengine.extension.input.touch.controller.MultiTouchController;
 import org.anddev.andengine.extension.input.touch.exception.MultiTouchException;
-import org.anddev.andengine.input.touch.TouchEvent;
 import org.anddev.andengine.opengl.font.Font;
 import org.anddev.andengine.opengl.texture.region.TextureRegion;
 import org.anddev.andengine.opengl.texture.region.TiledTextureRegion;
 import org.anddev.andengine.ui.activity.LayoutGameActivity;
 import org.anddev.andengine.util.Debug;
 import org.anddev.andengine.util.HorizontalAlign;
-import org.anddev.andengine.util.modifier.IModifier;
-import org.anddev.andengine.util.modifier.ease.EaseBounceOut;
-import org.anddev.andengine.util.modifier.ease.EaseStrongOut;
 
-import java.util.*;
+import java.util.Observable;
+import java.util.Observer;
 
 public class GameActivity extends LayoutGameActivity implements Observer {
 
     // sounds
-    protected static GameSound failSound;
-    protected static GameSound hitSound;
-    protected static GameSound startSound;
+    //protected static GameSound failSound;
+    //protected static GameSound hitSound;
+    //protected static GameSound startSound;
 
     protected static Font mFont;
 
@@ -54,28 +43,20 @@ public class GameActivity extends LayoutGameActivity implements Observer {
     protected static TiledTextureRegion targetTiles;
     protected static TextureRegion startTexture;
 
-    private static final int COLS = 5;
-    private static final int ROWS = 3;
-
-    private List<Target> targets = new ArrayList<Target>(15);
     private int width;
     private int height;
 
     private Overlay overlay;
-    private Scene scene;
 
     protected int score;
 
     private ChangeableText scoreText;
     private ChangeableText timerText;
     
-    private final static int ROUND_TIME = 60;
-    private long startTime = 0;
 
     public static GameActivity self;
     private SharedPreferences settings;
     private boolean sound = true;
-    private float startScale;
 
     {
         self = this;
@@ -119,10 +100,6 @@ public class GameActivity extends LayoutGameActivity implements Observer {
         startTexture = Resources.loadTexture(this, "start.png", 256, 64);
         targetTiles  = Resources.loadTexture(this, "tiles.png", 1024, 128, 7, 1);
 
-        // sounds
-        hitSound   = Resources.loadSound("hit.ogg", this);
-        failSound  = Resources.loadSound("fail.ogg", this);
-        startSound = Resources.loadSound("start.ogg", this);
 
         // font
         mFont = Resources.loadFont(this, "andy.ttf", 512, 256, height / 10, Color.YELLOW);
@@ -150,48 +127,33 @@ public class GameActivity extends LayoutGameActivity implements Observer {
         }
 
         scoreText = new ChangeableText(leftOffset, topTextOffset, mFont, "Score: " + getScore(), 11);
-        timerText = new ChangeableText(scoreText.getWidth() + leftOffset, topTextOffset, mFont, " " + getTimeLeft() + " sec", HorizontalAlign.RIGHT, 7);
+        timerText = new ChangeableText(scoreText.getWidth() + leftOffset, topTextOffset, mFont, " " + Game.getInstance().getTimeLeft() + " sec", HorizontalAlign.RIGHT, 7);
         timerText.setVisible(false);
         scene.attachChild(scoreText);
         scene.attachChild(timerText);
-        for (int j = 0; j < ROWS; j++) {
-            for (int i = 0; i < COLS; i++) {
-                final Target targetSprite = new Target(leftOffset + (size + dx) * i, topOffset + (size + dy) * j, this.targetTiles.deepCopy());
+        for (int j = 0; j < Game.ROWS; j++) {
+            for (int i = 0; i < Game.COLS; i++) {
+                final Target targetSprite = new Target(leftOffset + (size + dx) * i, topOffset + (size + dy) * j, targetTiles.deepCopy());
                 targetSprite.setWidth(getTargetSize());
                 targetSprite.setHeight(getTargetSize());
                 targetSprite.setScaleCenterX(getTargetSize() / 2);
                 targetSprite.setZIndex(2);
                 scene.attachChild(targetSprite);
-                this.targets.add(targetSprite);
                 Game.getInstance().addTarget(targetSprite);
             }
         }
         float scaleX = width / (float) bgTexture.getWidth(), scaleY = height / (float) bgTexture.getHeight();
-        Sprite bgSprite = new Sprite(0, 0, this.bgTexture);
+        Sprite bgSprite = new Sprite(0, 0, bgTexture);
         bgSprite.setScaleCenter(0, 0);
         bgSprite.setScale(scaleX, scaleY);
         scene.setBackground(new SpriteBackground(bgSprite));
         scene.registerUpdateHandler(Game.getInstance().getUpdateHandler());
-        scene.attachChild(getOverlay());
-        scene.registerTouchArea((Shape) getOverlay().getFirstChild());
-        scene.registerTouchArea((Shape) getOverlay().getLastChild());
-        this.scene = scene;
-
+        overlay = new Overlay(0, 0, width, height);
+        scene.attachChild(overlay);
         Game.getInstance().addObserver(this);
-
         return scene;
     }
 
-    private List<Target> getSleepTargets() {
-        List<Target> res = new ArrayList<Target>();
-        for (Target target : targets) {
-            if (!target.isRotating()) {
-                res.add(target);
-            }
-        }
-        return res;
-    }
-    
     protected void setScore(int score) {
         SharedPreferences.Editor editor = settings.edit();
         editor.putInt("score", score);
@@ -205,25 +167,6 @@ public class GameActivity extends LayoutGameActivity implements Observer {
         return score;
     }
     
-    protected int getProgress() {
-        if (startTime == 0) return 0;
-        return (int) Math.abs(100 - getTimeLeft() * 100f / ROUND_TIME);
-    }
-    
-    protected boolean hasStarted() {
-        return started;
-    }
-
-    protected int getTimeLeft() {
-        if (!hasStarted()) return 60;
-        return Math.abs(ROUND_TIME - (int) (System.currentTimeMillis() - startTime) / 1000);
-    }
-    
-    private float getProbability(boolean front) {
-        float extra = 0.05f * getProgress() / 100;
-        return (front ? 0.005f : .0007f) + extra;
-    }
-
     @Override
     public void onLoadComplete() {
         AdView adView = (AdView)this.findViewById(R.id.adView);
@@ -233,94 +176,8 @@ public class GameActivity extends LayoutGameActivity implements Observer {
         AdRequest request = new AdRequest();
         adView.loadAd(request);
 
-        IEntity btn = getOverlay().getFirstChild();
-        float _scaleX = btn.getScaleX();
-        btn.setScale(0);
-        btn.registerEntityModifier(new ScaleModifier(1.5f, 0f, _scaleX, EaseBounceOut.getInstance()));
-
+        overlay.onLoad();
         sound = settings.getBoolean("sound", true);
-    }
-
-    private boolean started = false;
-    private boolean animation = false;
-
-    public void start() {
-        this.scene.unregisterTouchArea(overlay);
-        getOverlay().registerEntityModifier(new SequenceEntityModifier(new IEntityModifier.IEntityModifierListener() {
-            @Override
-            public void onModifierStarted(IModifier<IEntity> pModifier, IEntity pItem) {
-                animation = true;
-                overlay.getLastChild().setVisible(false);
-            }
-
-            @Override
-            public void onModifierFinished(IModifier<IEntity> pModifier, IEntity pItem) {
-                started = true;
-                score = 0;
-                startTime = new Date().getTime();
-                animation = false;
-                timerText.setVisible(true);
-                overlay.setVisible(false);
-
-                scene.clearTouchAreas();
-                for (Target target : targets) {
-                    scene.registerTouchArea(target);
-                }
-            }
-        }, new AlphaModifier(.5f, .5f, 0)));
-    }
-
-    public void stop() {
-        started = false;
-    }
-
-    private Rectangle getOverlay() {
-        if (overlay == null) {
-            overlay = new Overlay(0, 0, width, height);
-
-            Sprite startButton = new Sprite(500, 200, startTexture) {
-                @Override
-                public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
-                    if (animation) return false;
-                    startSound.play();
-                    registerEntityModifier(new ScaleModifier(.5f, getScaleX(), 0, EaseStrongOut.getInstance()));
-                    start();
-                    return true;
-                }
-            };
-            startScale = width / (4 * startButton.getWidth()) ;
-            startButton.setPosition((width - startButton.getWidth())/ 2 , (height - startButton.getHeight())/ 2);
-            startButton.setScale(startScale);
-
-            overlay.attachChild(startButton);
-
-            Sprite shareButton = new Sprite(0, 0, this.shareTexture) {
-                @Override
-                public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
-                    if (!pSceneTouchEvent.isActionDown()) return false;
-                    startSound.play();
-                    share();
-                    return true;
-                }
-            };
-            shareButton.setPosition(width - shareButton.getWidth(), height - shareButton.getHeight());
-            float scale = (height / 3) * 100f / shareButton.getHeight();
-            shareButton.setScaleCenter(shareButton.getWidth(), shareButton.getHeight());
-            shareButton.setScale(scale / 100f);
-
-            overlay.attachChild(shareButton);
-        }
-        return overlay;
-    }
-
-
-    private void share() {
-        Intent shareIntent = new Intent(android.content.Intent.ACTION_SEND);
-        shareIntent.setType("text/plain");
-        shareIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Hit the Zombie");
-        String shareMessage = "Take a look at the \"Hit the Zombie\" game on android market\nhttps://market.android.com/details?id=com.jelastic.energy.zombie";
-        shareIntent.putExtra(android.content.Intent.EXTRA_TEXT, shareMessage);
-        startActivity(Intent.createChooser(shareIntent, "Insert share chooser title here"));
     }
 
     @Override
@@ -355,12 +212,16 @@ public class GameActivity extends LayoutGameActivity implements Observer {
 
     @Override
     public void update(Observable observable, Object o) {
-        Game game = (Game) observable;
-
-        if (game.isStarted()) {
+        if (!((Game) observable).isStarted()) {
             overlay.show();
-        } else {
-            overlay.hide();
         }
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
     }
 }

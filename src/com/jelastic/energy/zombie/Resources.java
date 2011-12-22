@@ -14,6 +14,20 @@ import org.anddev.andengine.util.Debug;
 import java.io.IOException;
 
 public class Resources {
+    
+    public static enum Sound {
+        HIT, FAIL, START;
+        
+        private GameSound sound;
+        
+        void play() {
+            sound.play();
+        }
+        
+        void load() {
+            sound = Resources.loadSound(name().toLowerCase() + ".ogg", GameActivity.self);
+        }
+    }
 
     public static TextureOptions textureOptions;
     public static boolean fontAntiAliasing;
@@ -25,6 +39,10 @@ public class Resources {
         BitmapTextureAtlasTextureRegionFactory.setAssetBasePath("gfx/");
         SoundFactory.setAssetBasePath("sounds/");
         FontFactory.setAssetBasePath("font/");
+
+        Sound.FAIL.load();
+        Sound.HIT.load();
+        Sound.START.load();
     }
 
     public static TiledTextureRegion loadTexture(BaseGameActivity ctx, String path, int atlasWidth, int atlasHeight, int cols, int rows) {

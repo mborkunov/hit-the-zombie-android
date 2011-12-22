@@ -24,7 +24,7 @@ public class Target extends TiledSprite {
                 elapsed = 0;
             }
 
-            if (!GameActivity.self.hasStarted() && !front && !isRotating()) {
+            if (!Game.getInstance().isStarted() && !front && !isRotating()) {
                 rotate(1);
             }
 
@@ -74,7 +74,7 @@ public class Target extends TiledSprite {
     };
 
     private int getAngleStep() {
-        return 15 + (int) (GameActivity.self.getProgress() / 15f);
+        return 15 + (int) (Game.getInstance().getProgress() / 15f);
     }
 
     private boolean rotating = false;
@@ -125,13 +125,13 @@ public class Target extends TiledSprite {
         setCurrentTileIndex(getCurrentTileIndex() + 3);
         rotate(1);
 
-        GameActivity.hitSound.play();
+        Resources.Sound.HIT.play();
         GameActivity.self.setScore(GameActivity.self.getScore() + 10);
     }
 
     private void miss()  {
         miss = true;
-        GameActivity.failSound.play();
+        Resources.Sound.FAIL.play();
         GameActivity.self.setScore(GameActivity.self.getScore() - 5);
     }
 }

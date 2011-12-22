@@ -8,34 +8,35 @@ import org.anddev.andengine.entity.modifier.ScaleModifier;
 import org.anddev.andengine.entity.modifier.SequenceEntityModifier;
 import org.anddev.andengine.entity.primitive.Rectangle;
 import org.anddev.andengine.entity.scene.Scene;
-import org.anddev.andengine.entity.shape.Shape;
 import org.anddev.andengine.entity.sprite.Sprite;
 import org.anddev.andengine.input.touch.TouchEvent;
-import org.anddev.andengine.opengl.vertex.RectangleVertexBuffer;
 import org.anddev.andengine.util.modifier.IModifier;
+import org.anddev.andengine.util.modifier.ease.EaseBounceOut;
 import org.anddev.andengine.util.modifier.ease.EaseStrongOut;
-
-import java.util.Date;
 
 public class Overlay extends Rectangle {
 
     private Sprite shareButton;
     private Sprite startButton;
 
+    private float startScale;
+
     {
         setAlpha(.5f);
         setColor(0, 0, 0);
         setZIndex(10);
+        
+        int width = GameActivity.self.getWidth(), height = GameActivity.self.getHeight();
 
-        Sprite startButton = new Sprite(500, 200, GameActivity.startTexture) {
+        startButton = new Sprite(500, 200, GameActivity.startTexture) {
             @Override
             public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
                 if (!pSceneTouchEvent.isActionDown()) {
                     return false;
                 }
 
-                GameActivity.startSound.play();
-                registerEntityModifier(new ScaleModifier(.5f, this.getScaleX(), 0, EaseStrongOut.getInstance()));
+                Resources.Sound.START.play();
+                hide();
                 return true;
             }
         };
@@ -45,11 +46,11 @@ public class Overlay extends Rectangle {
 
         attachChild(startButton);
 
-        Sprite shareButton = new Sprite(0, 0, GameActivity.shareTexture) {
+        shareButton = new Sprite(0, 0, GameActivity.shareTexture) {
             @Override
             public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
                 if (!pSceneTouchEvent.isActionDown()) return false;
-                GameActivity.startSound.play();
+                Resources.Sound.START.play();
                 share();
                 return true;
             }
@@ -66,18 +67,14 @@ public class Overlay extends Rectangle {
         super(pX, pY, pWidth, pHeight);
     }
 
-    public Overlay(float pX, float pY, float pWidth, float pHeight, RectangleVertexBuffer pRectangleVertexBuffer) {
-        super(pX, pY, pWidth, pHeight, pRectangleVertexBuffer);
-    }
-
-
     public void hide() {
-        final Scene scene = (Scene) getParent();
-        scene.clearTouchAreas();
+        final Scene scene = getScene();
         registerEntityModifier(new SequenceEntityModifier(new IEntityModifier.IEntityModifierListener() {
             @Override
             public void onModifierStarted(IModifier<IEntity> pModifier, IEntity pItem) {
+                scene.clearTouchAreas();
                 shareButton.setVisible(false);
+                startButton.registerEntityModifier(new ScaleModifier(.5f, startButton.getScaleX(), 0, EaseStrongOut.getInstance()));
             }
 
             @Override
@@ -93,15 +90,15 @@ public class Overlay extends Rectangle {
                 }
 
                 /*
-                        //started = true;
-                        //score = 0;
-                        //startTime = new Date().getTime();
-                        //timerText.setVisible(true);
+                //started = true;
+                //score = 0;
+                //startTime = new Date().getTime();
+                //timerText.setVisible(true);
 
-                        scene.clearTouchAreas();
-                        for (Target target : targets) {
-                            scene.registerTouchArea(target);
-                        }
+                scene.clearTouchAreas();
+                for (Target target : targets) {
+                    scene.registerTouchArea(target);
+                }
                  */
             }
         }, new AlphaModifier(.5f, .5f, 0)));
@@ -115,6 +112,7 @@ public class Overlay extends Rectangle {
 
             @Override
             public void onModifierStarted(IModifier<IEntity> pModifier, IEntity pItem) {
+                scene.clearTouchAreas();
             }
 
             @Override
@@ -130,11 +128,10 @@ public class Overlay extends Rectangle {
                     public void onModifierFinished(IModifier<IEntity> pModifier, IEntity pItem) {
                         scene.registerTouchArea(startButton);
                     }
-                }, new ScaleModifier(.3f, 0f, 1f, EaseStrongOut.getInstance())));
+                }, new ScaleModifier(.3f, 0f, startScale, EaseStrongOut.getInstance())));
 
                 shareButton.setVisible(true);
                 //timerText.setVisible(false);
-                scene.clearTouchAreas();
                 scene.registerTouchArea(shareButton);
             }
         }, new AlphaModifier(.5f, 0, .5f)));
@@ -148,5 +145,17 @@ public class Overlay extends Rectangle {
         String shareMessage = "Take a look at the \"Hit the Zombie\" game on android market\nhttps://market.android.com/details?id=com.jelastic.energy.zombie";
         shareIntent.putExtra(android.content.Intent.EXTRA_TEXT, shareMessage);
         GameActivity.self.startActivity(Intent.createChooser(shareIntent, "Insert share chooser title here"));
+    }
+
+    public void onLoad() {
+        startButton.setScale(0);
+        startButton.registerEntityModifier(new ScaleModifier(1.5f, 0f, startScale, EaseBounceOut.getInstance()));
+
+        getScene().registerTouchArea(startButton);
+        getScene().registerTouchArea(shareButton);
+    }
+
+    private Scene getScene() {
+        return (Scene) getParent();
     }
 }

@@ -19,9 +19,11 @@ public class Game extends Observable {
     private long startTime = 0;
     private List<Target> targets = new ArrayList<Target>(15);
 
-    private static final int COLS = 5;
-    private static final int ROWS = 3;
-    private final static int ROUND_TIME = 60;
+    protected static final int COLS = 5;
+    protected static final int ROWS = 3;
+
+    private final static int ROUND_TIME = 10;
+
     private IUpdateHandler updateHandler = new IUpdateHandler() {
 
         private float elapsed = 0;
@@ -56,6 +58,7 @@ public class Game extends Observable {
 
             if (getTimeLeft() <= 0) {
                 setStarted(false);
+                setChanged();
                 notifyObservers();
             }
         }
@@ -64,6 +67,9 @@ public class Game extends Observable {
         public void reset() {
         }
     };
+
+    private Game() {
+    }
 
     public static Game getInstance() {
         if (instance == null) {
@@ -128,4 +134,6 @@ public class Game extends Observable {
         float progressExtra = 0.05f * getProgress() / 100;
         return (front ? 0.005f : .0007f) + progressExtra;
     }
+
+
 }
