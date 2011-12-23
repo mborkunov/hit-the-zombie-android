@@ -28,14 +28,13 @@ public class Overlay extends Rectangle {
         
         int width = GameActivity.self.getWidth(), height = GameActivity.self.getHeight();
 
-        startButton = new Sprite(500, 200, GameActivity.self.startTexture) {
+        startButton = new Sprite(500, 200, GameActivity.self.theme.getStartButton()) {
             @Override
             public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
                 if (!pSceneTouchEvent.isActionDown()) {
                     return false;
                 }
-
-                Resources.Sound.START.play();
+                GameActivity.self.theme.getButtonSound().play();
                 hide();
                 return true;
             }
@@ -46,11 +45,11 @@ public class Overlay extends Rectangle {
 
         attachChild(startButton);
 
-        shareButton = new Sprite(0, 0, GameActivity.self.shareTexture) {
+        shareButton = new Sprite(0, 0, GameActivity.self.theme.getShareButton()) {
             @Override
             public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
                 if (!pSceneTouchEvent.isActionDown()) return false;
-                Resources.Sound.START.play();
+                GameActivity.self.theme.getButtonSound().play();
                 share();
                 return true;
             }

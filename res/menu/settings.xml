@@ -7,4 +7,9 @@
     <item android:id="@+id/sound"
           android:checkable="true"
           android:title="@string/sound_on" />
+
+    <item android:id="@+id/theme"
+          android:checkable="false"
+          android:title="@string/theme_zombie" />
+
 </menu>

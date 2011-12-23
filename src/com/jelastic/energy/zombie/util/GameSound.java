@@ -1,5 +1,6 @@
-package com.jelastic.energy.zombie;
+package com.jelastic.energy.zombie.util;
 
+import com.jelastic.energy.zombie.GameActivity;
 import org.anddev.andengine.audio.sound.Sound;
 
 public class GameSound {
@@ -10,7 +11,7 @@ public class GameSound {
     }
 
     public void play() {
-        if (!GameActivity.self.isSound()) {
+        if (GameActivity.self.isSound()) {
             this.sound.play();
         }
     }

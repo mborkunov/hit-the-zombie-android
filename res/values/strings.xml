@@ -7,4 +7,6 @@
 
     <string name="sound_on">Sound On</string>
     <string name="sound_off">Sound Off</string>
+    <string name="theme_zombie">Theme - Zombie</string>
+    <string name="theme_cat">Theme - Cat</string>
 </resources>

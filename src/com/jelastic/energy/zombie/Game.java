@@ -10,7 +10,7 @@ import java.util.Observable;
 
 public class Game extends Observable {
 
-    private static Game instance;
+    protected static Game instance;
 
     private boolean started = false;
     private int score = 0;
@@ -22,7 +22,7 @@ public class Game extends Observable {
     protected static final int COLS = 5;
     protected static final int ROWS = 3;
 
-    private final static int ROUND_TIME = 10;
+    private final static int ROUND_TIME = 60;
 
     private IUpdateHandler updateHandler = new IUpdateHandler() {
 
@@ -68,13 +68,11 @@ public class Game extends Observable {
         }
     };
 
-    private Game() {
+    protected Game() {
+        instance = this;
     }
 
     public static Game getInstance() {
-        if (instance == null) {
-            instance = new Game();
-        }
         return instance;
     }
 

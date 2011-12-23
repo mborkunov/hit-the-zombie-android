@@ -1,27 +1,30 @@
 package com.jelastic.energy.zombie;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.view.Display;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import com.google.ads.AdRequest;
 import com.google.ads.AdView;
+import com.jelastic.energy.zombie.themes.CatTheme;
+import com.jelastic.energy.zombie.themes.Theme;
+import com.jelastic.energy.zombie.themes.ZombieTheme;
+import com.jelastic.energy.zombie.util.Resources;
 import org.anddev.andengine.engine.Engine;
 import org.anddev.andengine.engine.camera.Camera;
 import org.anddev.andengine.engine.options.EngineOptions;
 import org.anddev.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
 import org.anddev.andengine.entity.scene.Scene;
-import org.anddev.andengine.entity.scene.background.SpriteBackground;
-import org.anddev.andengine.entity.sprite.Sprite;
 import org.anddev.andengine.entity.text.ChangeableText;
 import org.anddev.andengine.entity.util.FPSLogger;
 import org.anddev.andengine.extension.input.touch.controller.MultiTouchController;
 import org.anddev.andengine.extension.input.touch.exception.MultiTouchException;
 import org.anddev.andengine.opengl.font.Font;
-import org.anddev.andengine.opengl.texture.region.TextureRegion;
-import org.anddev.andengine.opengl.texture.region.TiledTextureRegion;
+import org.anddev.andengine.opengl.texture.TextureOptions;
 import org.anddev.andengine.ui.activity.LayoutGameActivity;
 import org.anddev.andengine.util.Debug;
 import org.anddev.andengine.util.HorizontalAlign;
@@ -32,11 +35,6 @@ import java.util.Observer;
 public class GameActivity extends LayoutGameActivity implements Observer {
 
     protected Font mFont;
-
-    protected TextureRegion bgTexture;
-    protected TextureRegion shareTexture;
-    protected TiledTextureRegion targetTiles;
-    protected TextureRegion startTexture;
 
     private int width;
     private int height;
@@ -51,6 +49,8 @@ public class GameActivity extends LayoutGameActivity implements Observer {
 
     public static GameActivity self;
     private SharedPreferences settings;
+    private Scene scene;
+    public Theme theme;
 
     {
         self = this;
@@ -60,9 +60,10 @@ public class GameActivity extends LayoutGameActivity implements Observer {
     public Engine onLoadEngine() {
         Display display = getWindowManager().getDefaultDisplay();
         
-        this.width = display.getWidth();
-        this.height = display.getHeight();
+        width = display.getWidth();
+        height = display.getHeight();
         settings = getSharedPreferences("zombie.dat", 0);
+        new Game();
 
         final Camera camera = new Camera(0, 0, width, height);
         return new Engine(new EngineOptions(true, EngineOptions.ScreenOrientation.LANDSCAPE, new FillResolutionPolicy(), camera).setNeedsSound(true));
@@ -86,17 +87,12 @@ public class GameActivity extends LayoutGameActivity implements Observer {
     @Override
     public void onLoadResources() {
         mEngine.registerUpdateHandler(new FPSLogger());
-
         Resources.init();
-
-        // textures
-        bgTexture    = Resources.loadTexture(this, "cemetery.png", 512, 512);
-        shareTexture = Resources.loadTexture(this, "share.png", 256, 256);
-        startTexture = Resources.loadTexture(this, "start.png", 256, 64);
-        targetTiles  = Resources.loadTexture(this, "tiles.png", 1024, 128, 7, 1);
+        theme = getThemeName().equals("zombie") ? new ZombieTheme() : new CatTheme();
+        theme.load();
 
         // font
-        mFont = Resources.loadFont(this, "andy.ttf", 512, 256, height / 10, Color.YELLOW);
+        mFont = Resources.loadFont(this, "andy.ttf", 512, 256, height / 10, theme.getTextColor());
 
         try {
             mEngine.setTouchController(new MultiTouchController());
@@ -107,18 +103,23 @@ public class GameActivity extends LayoutGameActivity implements Observer {
 
     @Override
     public Scene onLoadScene() {
+        if (settings.contains("score")) {
+            score = settings.getInt("score", 0);
+        }
+        score = 0;
+
+        scene = new Scene();
+        createScene(scene);
+        return scene;
+    }
+
+    private void createScene(Scene scene) {
         int size = getTargetSize();
         int dx = width / 25, dy = height / 50;
 
         int topOffset = height - ((getTargetSize() + dy) * 3) - (int) (height * .05);
         int leftOffset = (width - (5 * (size + dx))) / 2;
         int topTextOffset = height / 80;
-
-        final Scene scene = new Scene();
-
-        if (settings.contains("score")) {
-            score = settings.getInt("score", 0);
-        }
 
         scoreText = new ChangeableText(leftOffset, topTextOffset, mFont, "Score: " + getScore(), 11);
         timerText = new ChangeableText(scoreText.getWidth() + leftOffset, topTextOffset, mFont, " " + Game.getInstance().getTimeLeft() + " sec", HorizontalAlign.RIGHT, 7);
@@ -128,7 +129,7 @@ public class GameActivity extends LayoutGameActivity implements Observer {
         Game.getInstance().getTargets().clear();
         for (int j = 0; j < Game.ROWS; j++) {
             for (int i = 0; i < Game.COLS; i++) {
-                final Target targetSprite = new Target(leftOffset + (size + dx) * i, topOffset + (size + dy) * j, targetTiles.deepCopy());
+                final Target targetSprite = new Target(leftOffset + (size + dx) * i, topOffset + (size + dy) * j, theme.getTiles().deepCopy());
                 targetSprite.setWidth(getTargetSize());
                 targetSprite.setHeight(getTargetSize());
                 targetSprite.setScaleCenterX(getTargetSize() / 2);
@@ -137,16 +138,11 @@ public class GameActivity extends LayoutGameActivity implements Observer {
                 Game.getInstance().addTarget(targetSprite);
             }
         }
-        float scaleX = width / (float) bgTexture.getWidth(), scaleY = height / (float) bgTexture.getHeight();
-        Sprite bgSprite = new Sprite(0, 0, bgTexture);
-        bgSprite.setScaleCenter(0, 0);
-        bgSprite.setScale(scaleX, scaleY);
-        scene.setBackground(new SpriteBackground(bgSprite));
+        scene.setBackground(theme.getBackground());
         scene.registerUpdateHandler(Game.getInstance().getUpdateHandler());
         overlay = new Overlay(0, 0, width, height);
         scene.attachChild(overlay);
         Game.getInstance().addObserver(this);
-        return scene;
     }
 
     protected void setScore(int score) {
@@ -172,13 +168,20 @@ public class GameActivity extends LayoutGameActivity implements Observer {
         adView.loadAd(request);
 
         overlay.onLoad();
-        settings.getBoolean("sound", true);
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater menuInflater = getMenuInflater();
-        menuInflater.inflate(R.menu.settings, menu);
+        getMenuInflater().inflate(R.menu.settings, menu);
+
+        MenuItem qualityItem = menu.findItem(R.id.quality);
+        qualityItem.setTitle(isQuality() ? R.string.quality_high : R.string.quality_low);
+
+        MenuItem soundItem = menu.findItem(R.id.sound);
+        soundItem.setTitle(isSound() ? R.string.sound_on : R.string.sound_off);
+
+        MenuItem themeItem = menu.findItem(R.id.theme);
+        themeItem.setTitle(getThemeName().equals("zombie") ? R.string.theme_zombie : R.string.theme_cat);
         return true;
     }
 
@@ -187,25 +190,40 @@ public class GameActivity extends LayoutGameActivity implements Observer {
         switch (item.getItemId()) {
             case R.id.sound:
                 setSound(!isSound());
-                item.setTitle(isSound() ? R.string.sound_off : R.string.sound_on);
+                item.setTitle(isSound() ? R.string.sound_on : R.string.sound_off);
+                return true;
+            case R.id.theme:
+                setThemeName(getThemeName().equals("zombie") ? "cat" : "zombie");
+                item.setTitle(getThemeName().equals("zombie") ? R.string.theme_zombie : R.string.theme_cat);
+                restart();
                 return true;
             case R.id.quality:
                 setQuality(!isQuality());
                 item.setTitle(isQuality() ? R.string.quality_high : R.string.quality_low);
+                restart();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
-    public void setQuality(boolean quality) {
-        SharedPreferences.Editor editor = settings.edit();
-        editor.putBoolean("quality", quality);
-        editor.commit();
+    private void restart() {
+        AlarmManager mgr = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        mgr.set(AlarmManager.RTC, System.currentTimeMillis() + 1000, PendingIntent.getActivity(this.getBaseContext(), 0, new Intent(getIntent()), getIntent().getFlags()));
+        System.exit(2);
     }
 
     public boolean isQuality() {
         return settings.getBoolean("quality", true);
+    }
+
+    public void setQuality(boolean quality) {
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putBoolean("quality", quality);
+        editor.commit();
+
+        Resources.textureOptions = isQuality() ? TextureOptions.BILINEAR : TextureOptions.NEAREST;
+        Resources.fontAntiAliasing = isQuality();
     }
 
     public boolean isSound() {
@@ -216,6 +234,16 @@ public class GameActivity extends LayoutGameActivity implements Observer {
         SharedPreferences.Editor editor = settings.edit();
         editor.putBoolean("sound", sound);
         editor.commit();
+    }
+
+    public void setThemeName(String theme) {
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putString("theme", theme);
+        editor.commit();
+    }
+
+    public String getThemeName() {
+        return settings.getString("theme", "zombie");
     }
 
     @Override

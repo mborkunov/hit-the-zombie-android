@@ -116,12 +116,12 @@ public class Target extends TiledSprite {
         setCurrentTileIndex(getCurrentTileIndex() + 3);
         rotate(1);
 
-        Resources.Sound.HIT.play();
+        GameActivity.self.theme.getHitSound().play();
         GameActivity.self.setScore(GameActivity.self.getScore() + 10);
     }
 
     private void miss()  {
-        Resources.Sound.FAIL.play();
+        GameActivity.self.theme.getFailSound().play();
         GameActivity.self.setScore(GameActivity.self.getScore() - 5);
     }
 }

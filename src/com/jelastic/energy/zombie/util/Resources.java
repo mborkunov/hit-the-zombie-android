@@ -1,5 +1,6 @@
-package com.jelastic.energy.zombie;
+package com.jelastic.energy.zombie.util;
 
+import com.jelastic.energy.zombie.GameActivity;
 import org.anddev.andengine.audio.sound.SoundFactory;
 import org.anddev.andengine.opengl.font.Font;
 import org.anddev.andengine.opengl.font.FontFactory;
@@ -14,20 +15,6 @@ import org.anddev.andengine.util.Debug;
 import java.io.IOException;
 
 public class Resources {
-    
-    public static enum Sound {
-        HIT, FAIL, START;
-        
-        private GameSound sound;
-        
-        void play() {
-            sound.play();
-        }
-        
-        void load() {
-            sound = Resources.loadSound(name().toLowerCase() + ".ogg", GameActivity.self);
-        }
-    }
 
     public static TextureOptions textureOptions;
     public static boolean fontAntiAliasing;
@@ -38,21 +25,14 @@ public class Resources {
 
         BitmapTextureAtlasTextureRegionFactory.setAssetBasePath("gfx/");
         SoundFactory.setAssetBasePath("sounds/");
-        FontFactory.setAssetBasePath("font/");
-
-        Sound.FAIL.load();
-        Sound.HIT.load();
-        Sound.START.load();
-    }
-
-    public void loadTextures() {
-        
+        FontFactory.setAssetBasePath( "font/");
     }
 
     public static TiledTextureRegion loadTexture(BaseGameActivity ctx, String path, int atlasWidth, int atlasHeight, int cols, int rows) {
         BitmapTextureAtlas textureAtlas = new BitmapTextureAtlas(atlasWidth, atlasHeight, textureOptions);
         TiledTextureRegion region = BitmapTextureAtlasTextureRegionFactory.createTiledFromAsset(textureAtlas, ctx, path, 0, 0, cols, rows);
         ctx.getEngine().getTextureManager().loadTexture(textureAtlas);
+
         return region;
     }
 
