@@ -1,6 +1,8 @@
 package com.jelastic.energy.zombie;
 
+import android.content.SharedPreferences;
 import org.anddev.andengine.engine.handler.IUpdateHandler;
+import org.anddev.andengine.entity.text.ChangeableText;
 import org.anddev.andengine.util.MathUtils;
 
 import java.util.ArrayList;
@@ -33,7 +35,7 @@ public class Game extends Observable {
                 return;
             }
 
-            //timerText.setText(" " + getTimeLeft() + " sec");
+            GameActivity.self.timerText.setText(" " + getTimeLeft() + " sec");
 
             elapsed += pSecondsElapsed;
             if (elapsed < .02) {
@@ -58,6 +60,7 @@ public class Game extends Observable {
 
             if (getTimeLeft() <= 0) {
                 setStarted(false);
+                setHighscore(getScore());
                 setChanged();
                 notifyObservers();
             }
@@ -87,7 +90,9 @@ public class Game extends Observable {
     public void start() {
         if (started) return;
         setStarted(true);
+        reset();
         startTime = new Date().getTime();
+        GameActivity.self.timerText.setVisible(true);
         notifyObservers();
     }
 
@@ -133,5 +138,41 @@ public class Game extends Observable {
         return (front ? 0.005f : .0007f) + progressExtra;
     }
 
+    public int getScore() {
+        return score;
+    }
 
+    public void setScore(int score) {
+        this.score = Math.max(0, score);
+        ChangeableText scoreText = GameActivity.self.scoreText;
+        scoreText.setText("Score: " + getScore());
+        GameActivity.self.timerText.setPosition(scoreText.getWidth() + scoreText.getX(), scoreText.getY());
+    }
+
+    public int getHighscore() {
+        return GameActivity.self.settings.getInt("highscore", 0);
+    }
+
+    public void setHighscore(int newHighscore) {
+        if (newHighscore > 0 && newHighscore > getHighscore()) {
+            this.highscore = newHighscore;
+            SharedPreferences.Editor editor = GameActivity.self.settings.edit();
+            editor.putInt("highscore", score);
+            editor.commit();
+            ChangeableText highscoreText = GameActivity.self.overlay.highscoreText;
+            highscoreText.setText("Highscore: " + highscore);
+            highscoreText.setPosition((GameActivity.self.getWidth() - highscoreText.getWidth())  / 2, highscoreText.getY());
+            highscoreText.setVisible(true);
+        }
+    }
+
+    public void resetScore() {
+        SharedPreferences.Editor editor = GameActivity.self.settings.edit();
+        editor.putInt("highscore", 0);
+        editor.commit();
+        ChangeableText highscoreText = GameActivity.self.overlay.highscoreText;
+        highscoreText.setText("Highscore: 0");
+        highscoreText.setPosition((GameActivity.self.getWidth() - highscoreText.getWidth())  / 2, highscoreText.getY());
+        highscoreText.setVisible(false);
+    }
 }

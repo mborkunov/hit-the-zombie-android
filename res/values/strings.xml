@@ -9,4 +9,5 @@
     <string name="sound_off">Sound Off</string>
     <string name="theme_zombie">Theme - Zombie</string>
     <string name="theme_cat">Theme - Cat</string>
+    <string name="reset_score">Reset Score</string>
 </resources>

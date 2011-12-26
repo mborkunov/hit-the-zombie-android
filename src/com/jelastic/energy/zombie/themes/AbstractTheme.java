@@ -47,7 +47,7 @@ public abstract class AbstractTheme implements Theme {
     @Override
     public TextureRegion getShareButton() {
         if (shareButton ==  null) {
-            shareButton = Resources.loadTexture(GameActivity.self, id + "/share.png", 256, 256);
+            shareButton = Resources.loadTexture(GameActivity.self, id + "/share.png", 128, 128);
         }
         return shareButton;
     }

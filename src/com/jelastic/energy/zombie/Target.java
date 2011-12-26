@@ -103,6 +103,7 @@ public class Target extends TiledSprite {
 
     @Override
     public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
+        if (!Game.getInstance().isStarted()) return true;
         if (!pSceneTouchEvent.isActionDown()) return true;
         if (!front) {
             hit();
@@ -117,11 +118,11 @@ public class Target extends TiledSprite {
         rotate(1);
 
         GameActivity.self.theme.getHitSound().play();
-        GameActivity.self.setScore(GameActivity.self.getScore() + 10);
+        Game.getInstance().setScore(Game.getInstance().getScore() + 10);
     }
 
     private void miss()  {
         GameActivity.self.theme.getFailSound().play();
-        GameActivity.self.setScore(GameActivity.self.getScore() - 5);
+        Game.getInstance().setScore(Game.getInstance().getScore() - 5);
     }
 }

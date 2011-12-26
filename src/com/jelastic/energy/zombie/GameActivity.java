@@ -39,16 +39,14 @@ public class GameActivity extends LayoutGameActivity implements Observer {
     private int width;
     private int height;
 
-    private Overlay overlay;
+    protected Overlay overlay;
 
-    protected int score;
+    protected ChangeableText scoreText;
+    protected ChangeableText timerText;
 
-    private ChangeableText scoreText;
-    private ChangeableText timerText;
-    
 
     public static GameActivity self;
-    private SharedPreferences settings;
+    protected SharedPreferences settings;
     private Scene scene;
     public Theme theme;
 
@@ -103,11 +101,6 @@ public class GameActivity extends LayoutGameActivity implements Observer {
 
     @Override
     public Scene onLoadScene() {
-        if (settings.contains("score")) {
-            score = settings.getInt("score", 0);
-        }
-        score = 0;
-
         scene = new Scene();
         createScene(scene);
         return scene;
@@ -121,7 +114,7 @@ public class GameActivity extends LayoutGameActivity implements Observer {
         int leftOffset = (width - (5 * (size + dx))) / 2;
         int topTextOffset = height / 80;
 
-        scoreText = new ChangeableText(leftOffset, topTextOffset, mFont, "Score: " + getScore(), 11);
+        scoreText = new ChangeableText(leftOffset, topTextOffset, mFont, "Score: " + Game.getInstance().getScore(), 11);
         timerText = new ChangeableText(scoreText.getWidth() + leftOffset, topTextOffset, mFont, " " + Game.getInstance().getTimeLeft() + " sec", HorizontalAlign.RIGHT, 7);
         timerText.setVisible(false);
         scene.attachChild(scoreText);
@@ -145,19 +138,6 @@ public class GameActivity extends LayoutGameActivity implements Observer {
         Game.getInstance().addObserver(this);
     }
 
-    protected void setScore(int score) {
-        SharedPreferences.Editor editor = settings.edit();
-        editor.putInt("score", score);
-        editor.commit();
-        this.score = Math.max(0, score);
-        scoreText.setText("Score: " + getScore());
-        timerText.setPosition(scoreText.getWidth() + scoreText.getX(), scoreText.getY());
-    }
-
-    protected int getScore() {
-        return score;
-    }
-    
     @Override
     public void onLoadComplete() {
         AdView adView = (AdView)this.findViewById(R.id.adView);
@@ -201,6 +181,9 @@ public class GameActivity extends LayoutGameActivity implements Observer {
                 setQuality(!isQuality());
                 item.setTitle(isQuality() ? R.string.quality_high : R.string.quality_low);
                 restart();
+                return true;
+            case R.id.reset:
+                Game.getInstance().resetScore();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

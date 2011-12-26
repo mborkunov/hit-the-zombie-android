@@ -9,6 +9,7 @@ import org.anddev.andengine.entity.modifier.SequenceEntityModifier;
 import org.anddev.andengine.entity.primitive.Rectangle;
 import org.anddev.andengine.entity.scene.Scene;
 import org.anddev.andengine.entity.sprite.Sprite;
+import org.anddev.andengine.entity.text.ChangeableText;
 import org.anddev.andengine.input.touch.TouchEvent;
 import org.anddev.andengine.util.modifier.IModifier;
 import org.anddev.andengine.util.modifier.ease.EaseBounceOut;
@@ -18,6 +19,7 @@ public class Overlay extends Rectangle {
 
     private Sprite shareButton;
     private Sprite startButton;
+    protected ChangeableText highscoreText;
 
     private float startScale;
 
@@ -40,10 +42,15 @@ public class Overlay extends Rectangle {
             }
         };
         startScale = width / (4 * startButton.getWidth()) ;
-        startButton.setPosition((width - startButton.getWidth())/ 2 , (height - startButton.getHeight())/ 2);
+        startButton.setPosition((width - startButton.getWidth())/ 2 , (height - startButton.getHeight()) / 2);
         startButton.setScale(startScale);
 
+        highscoreText = new ChangeableText(startButton.getX(), startButton.getY() + startButton.getHeight() * 2, GameActivity.self.mFont, "Highscore: " + Game.getInstance().getHighscore(), 15);
+        highscoreText.setPosition((GameActivity.self.getWidth() - highscoreText.getWidth())  / 2, highscoreText.getY());
+        highscoreText.setVisible(Game.getInstance().getHighscore() > 0);
+
         attachChild(startButton);
+        attachChild(highscoreText);
 
         shareButton = new Sprite(0, 0, GameActivity.self.theme.getShareButton()) {
             @Override
@@ -55,7 +62,8 @@ public class Overlay extends Rectangle {
             }
         };
         shareButton.setPosition(width - shareButton.getWidth(), height - shareButton.getHeight());
-        float scale = (height / 3) * 100f / shareButton.getHeight();
+        shareButton.setVisible(false);
+        float scale = (height / 4) * 100f / shareButton.getHeight();
         shareButton.setScaleCenter(shareButton.getWidth(), shareButton.getHeight());
         shareButton.setScale(scale / 100f);
 
@@ -81,24 +89,11 @@ public class Overlay extends Rectangle {
                 Game.getInstance().reset();
                 Game.getInstance().start();
 
-                ///timerText.setVisible(true);
                 setVisible(false);
 
                 for (Target target : Game.getInstance().getTargets()) {
                     scene.registerTouchArea(target);
                 }
-
-                /*
-                //started = true;
-                //score = 0;
-                //startTime = new Date().getTime();
-                //timerText.setVisible(true);
-
-                scene.clearTouchAreas();
-                for (Target target : targets) {
-                    scene.registerTouchArea(target);
-                }
-                 */
             }
         }, new AlphaModifier(.5f, .5f, 0)));
 
@@ -130,7 +125,6 @@ public class Overlay extends Rectangle {
                 }, new ScaleModifier(.3f, 0f, startScale, EaseStrongOut.getInstance())));
 
                 shareButton.setVisible(true);
-                //timerText.setVisible(false);
                 scene.registerTouchArea(shareButton);
             }
         }, new AlphaModifier(.5f, 0, .5f)));
