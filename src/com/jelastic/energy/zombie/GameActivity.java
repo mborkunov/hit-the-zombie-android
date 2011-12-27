@@ -21,6 +21,7 @@ import org.anddev.andengine.engine.options.resolutionpolicy.FillResolutionPolicy
 import org.anddev.andengine.entity.scene.Scene;
 import org.anddev.andengine.entity.text.ChangeableText;
 import org.anddev.andengine.entity.util.FPSLogger;
+import org.anddev.andengine.extension.input.touch.controller.MultiTouch;
 import org.anddev.andengine.extension.input.touch.controller.MultiTouchController;
 import org.anddev.andengine.extension.input.touch.exception.MultiTouchException;
 import org.anddev.andengine.opengl.font.Font;
@@ -92,10 +93,13 @@ public class GameActivity extends LayoutGameActivity implements Observer {
         // font
         mFont = Resources.loadFont(this, "andy.ttf", 512, 256, height / 10, theme.getTextColor());
 
-        try {
-            mEngine.setTouchController(new MultiTouchController());
-        } catch (MultiTouchException e) {
-            Debug.e(e);
+        boolean multiTouch = MultiTouch.isSupported(getApplicationContext());
+        if (multiTouch) {
+            try {
+                mEngine.setTouchController(new MultiTouchController());
+            } catch (MultiTouchException e) {
+                Debug.e(e);
+            }
         }
     }
 
