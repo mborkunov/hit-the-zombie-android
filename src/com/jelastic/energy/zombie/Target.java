@@ -1,10 +1,12 @@
 package com.jelastic.energy.zombie;
 
-import org.anddev.andengine.engine.handler.IUpdateHandler;
-import org.anddev.andengine.entity.sprite.TiledSprite;
-import org.anddev.andengine.input.touch.TouchEvent;
-import org.anddev.andengine.opengl.texture.region.TiledTextureRegion;
-import org.anddev.andengine.util.MathUtils;
+import android.content.Context;
+import android.os.Vibrator;
+import org.andengine.engine.handler.IUpdateHandler;
+import org.andengine.entity.sprite.TiledSprite;
+import org.andengine.input.touch.TouchEvent;
+import org.andengine.opengl.texture.region.TiledTextureRegion;
+import org.andengine.util.math.MathUtils;
 
 import java.util.Date;
 
@@ -80,7 +82,7 @@ public class Target extends TiledSprite {
     protected long stopTime = new Date().getTime();
 
     public Target(float pX, float pY, TiledTextureRegion pTiledTextureRegion) {
-        super(pX, pY, pTiledTextureRegion);
+        super(pX, pY, pTiledTextureRegion, GameActivity.self.getVertexBufferObjectManager());
         this.registerUpdateHandler(handler);
     }
 
@@ -114,11 +116,17 @@ public class Target extends TiledSprite {
     }
 
     private void hit() {
-        setCurrentTileIndex(getCurrentTileIndex() + 3);
-        rotate(1);
+        if (getCurrentTileIndex() + 3 < getTileCount()) {
+            setCurrentTileIndex(getCurrentTileIndex() + 3);
+            rotate(1);
 
-        GameActivity.self.theme.getHitSound().play();
-        Game.getInstance().setScore(Game.getInstance().getScore() + 10);
+            GameActivity.self.theme.getHitSound().play();
+            if (GameActivity.self.getOptions().isVibrate()) {
+                Vibrator v = (Vibrator) GameActivity.self.getSystemService(Context.VIBRATOR_SERVICE);
+                v.vibrate(100);
+            }
+            Game.getInstance().setScore(Game.getInstance().getScore() + 10);
+        }
     }
 
     private void miss()  {

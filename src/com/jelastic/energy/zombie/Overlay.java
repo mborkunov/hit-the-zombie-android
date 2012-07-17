@@ -1,25 +1,25 @@
 package com.jelastic.energy.zombie;
 
 import android.content.Intent;
-import org.anddev.andengine.entity.IEntity;
-import org.anddev.andengine.entity.modifier.AlphaModifier;
-import org.anddev.andengine.entity.modifier.IEntityModifier;
-import org.anddev.andengine.entity.modifier.ScaleModifier;
-import org.anddev.andengine.entity.modifier.SequenceEntityModifier;
-import org.anddev.andengine.entity.primitive.Rectangle;
-import org.anddev.andengine.entity.scene.Scene;
-import org.anddev.andengine.entity.sprite.Sprite;
-import org.anddev.andengine.entity.text.ChangeableText;
-import org.anddev.andengine.input.touch.TouchEvent;
-import org.anddev.andengine.util.modifier.IModifier;
-import org.anddev.andengine.util.modifier.ease.EaseBounceOut;
-import org.anddev.andengine.util.modifier.ease.EaseStrongOut;
+import org.andengine.entity.IEntity;
+import org.andengine.entity.modifier.AlphaModifier;
+import org.andengine.entity.modifier.IEntityModifier;
+import org.andengine.entity.modifier.ScaleModifier;
+import org.andengine.entity.modifier.SequenceEntityModifier;
+import org.andengine.entity.primitive.Rectangle;
+import org.andengine.entity.scene.Scene;
+import org.andengine.entity.sprite.Sprite;
+import org.andengine.entity.text.Text;
+import org.andengine.input.touch.TouchEvent;
+import org.andengine.util.modifier.IModifier;
+import org.andengine.util.modifier.ease.EaseBounceOut;
+import org.andengine.util.modifier.ease.EaseStrongOut;
 
 public class Overlay extends Rectangle {
 
     private Sprite shareButton;
     private Sprite startButton;
-    protected ChangeableText highscoreText;
+    protected Text highscoreText;
 
     private float startScale;
 
@@ -27,10 +27,10 @@ public class Overlay extends Rectangle {
         setAlpha(.5f);
         setColor(0, 0, 0);
         setZIndex(10);
-        
+
         int width = GameActivity.self.getWidth(), height = GameActivity.self.getHeight();
 
-        startButton = new Sprite(500, 200, GameActivity.self.theme.getStartButton()) {
+        startButton = new Sprite(500, 200, GameActivity.self.theme.getStartButton(), GameActivity.self.getVertexBufferObjectManager()) {
             @Override
             public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
                 if (!pSceneTouchEvent.isActionDown()) {
@@ -45,14 +45,14 @@ public class Overlay extends Rectangle {
         startButton.setPosition((width - startButton.getWidth())/ 2 , (height - startButton.getHeight()) / 2);
         startButton.setScale(startScale);
 
-        highscoreText = new ChangeableText(startButton.getX(), startButton.getY() + startButton.getHeight() * 2, GameActivity.self.mFont, "Highscore: " + Game.getInstance().getHighscore(), 15);
+        highscoreText = new Text(startButton.getX(), startButton.getY() + startButton.getHeight() * 2, GameActivity.self.mFont, "Highscore: " + Game.getInstance().getHighscore(), 15, GameActivity.self.getVertexBufferObjectManager());
         highscoreText.setPosition((GameActivity.self.getWidth() - highscoreText.getWidth())  / 2, highscoreText.getY());
         highscoreText.setVisible(Game.getInstance().getHighscore() > 0);
 
         attachChild(startButton);
         attachChild(highscoreText);
 
-        shareButton = new Sprite(0, 0, GameActivity.self.theme.getShareButton()) {
+        shareButton = new Sprite(0, 0, GameActivity.self.theme.getShareButton(), GameActivity.self.getVertexBufferObjectManager()) {
             @Override
             public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
                 if (!pSceneTouchEvent.isActionDown()) return false;
@@ -71,7 +71,7 @@ public class Overlay extends Rectangle {
     }
 
     public Overlay(float pX, float pY, float pWidth, float pHeight) {
-        super(pX, pY, pWidth, pHeight);
+        super(pX, pY, pWidth, pHeight, GameActivity.self.getVertexBufferObjectManager());
     }
 
     public void hide() {

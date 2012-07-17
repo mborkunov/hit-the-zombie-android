@@ -1,14 +1,16 @@
 package com.jelastic.energy.zombie.themes;
 
 import com.jelastic.energy.zombie.util.GameSound;
-import org.anddev.andengine.entity.scene.background.IBackground;
-import org.anddev.andengine.opengl.texture.region.TextureRegion;
-import org.anddev.andengine.opengl.texture.region.TiledTextureRegion;
+import org.andengine.entity.scene.background.IBackground;
+import org.andengine.opengl.font.Font;
+import org.andengine.opengl.texture.region.TextureRegion;
+import org.andengine.opengl.texture.region.TiledTextureRegion;
 
 public interface Theme {
 
     void load();
 
+    Font getFont();
     IBackground getBackground();
     TiledTextureRegion getTiles();
     TextureRegion getStartButton();

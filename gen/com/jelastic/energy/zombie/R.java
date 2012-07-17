@@ -11,15 +11,21 @@ public final class R {
     public static final class attr {
     }
     public static final class drawable {
-        public static final int icon=0x7f020000;
+        public static final int ic_audio_vol=0x7f020000;
+        public static final int ic_audio_vol_mute=0x7f020001;
+        public static final int ic_theme_cat=0x7f020002;
+        public static final int ic_theme_zombie=0x7f020003;
+        public static final int ic_vibrate=0x7f020004;
+        public static final int ic_vibrate_off=0x7f020005;
+        public static final int icon=0x7f020006;
     }
     public static final class id {
-        public static final int adView=0x7f060001;
-        public static final int quality=0x7f060002;
+        public static final int quality=0x7f060001;
         public static final int render=0x7f060000;
         public static final int reset=0x7f060005;
-        public static final int sound=0x7f060004;
-        public static final int theme=0x7f060003;
+        public static final int sound=0x7f060003;
+        public static final int theme=0x7f060002;
+        public static final int vibrate=0x7f060004;
     }
     public static final class layout {
         public static final int main=0x7f030000;
@@ -36,5 +42,7 @@ public final class R {
         public static final int sound_on=0x7f040003;
         public static final int theme_cat=0x7f040006;
         public static final int theme_zombie=0x7f040005;
+        public static final int vibrate_off=0x7f040009;
+        public static final int vibrate_on=0x7f040008;
     }
 }

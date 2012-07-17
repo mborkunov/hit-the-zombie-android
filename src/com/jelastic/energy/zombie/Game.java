@@ -1,9 +1,9 @@
 package com.jelastic.energy.zombie;
 
 import android.content.SharedPreferences;
-import org.anddev.andengine.engine.handler.IUpdateHandler;
-import org.anddev.andengine.entity.text.ChangeableText;
-import org.anddev.andengine.util.MathUtils;
+import org.andengine.engine.handler.IUpdateHandler;
+import org.andengine.entity.text.Text;
+import org.andengine.util.math.MathUtils;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -144,7 +144,7 @@ public class Game extends Observable {
 
     public void setScore(int score) {
         this.score = Math.max(0, score);
-        ChangeableText scoreText = GameActivity.self.scoreText;
+        Text scoreText = GameActivity.self.scoreText;
         scoreText.setText("Score: " + getScore());
         GameActivity.self.timerText.setPosition(scoreText.getWidth() + scoreText.getX(), scoreText.getY());
     }
@@ -159,7 +159,7 @@ public class Game extends Observable {
             SharedPreferences.Editor editor = GameActivity.self.settings.edit();
             editor.putInt("highscore", score);
             editor.commit();
-            ChangeableText highscoreText = GameActivity.self.overlay.highscoreText;
+            Text highscoreText = GameActivity.self.overlay.highscoreText;
             highscoreText.setText("Highscore: " + highscore);
             highscoreText.setPosition((GameActivity.self.getWidth() - highscoreText.getWidth())  / 2, highscoreText.getY());
             highscoreText.setVisible(true);
@@ -170,7 +170,7 @@ public class Game extends Observable {
         SharedPreferences.Editor editor = GameActivity.self.settings.edit();
         editor.putInt("highscore", 0);
         editor.commit();
-        ChangeableText highscoreText = GameActivity.self.overlay.highscoreText;
+        Text highscoreText = GameActivity.self.overlay.highscoreText;
         highscoreText.setText("Highscore: 0");
         highscoreText.setPosition((GameActivity.self.getWidth() - highscoreText.getWidth())  / 2, highscoreText.getY());
         highscoreText.setVisible(false);

@@ -3,8 +3,9 @@ package com.jelastic.energy.zombie.themes;
 import com.jelastic.energy.zombie.GameActivity;
 import com.jelastic.energy.zombie.util.GameSound;
 import com.jelastic.energy.zombie.util.Resources;
-import org.anddev.andengine.opengl.texture.region.TextureRegion;
-import org.anddev.andengine.opengl.texture.region.TiledTextureRegion;
+import org.andengine.opengl.font.Font;
+import org.andengine.opengl.texture.region.TextureRegion;
+import org.andengine.opengl.texture.region.TiledTextureRegion;
 
 public abstract class AbstractTheme implements Theme {
 
@@ -15,6 +16,7 @@ public abstract class AbstractTheme implements Theme {
     private TextureRegion shareButton;
     private TextureRegion startButton;
     private TiledTextureRegion tiles;
+    private Font font;
 
     @Override
     public void load() {
@@ -25,6 +27,7 @@ public abstract class AbstractTheme implements Theme {
         getHitSound();
         getButtonSound();
         getFailSound();
+        getFont();
     }
 
 
@@ -74,5 +77,14 @@ public abstract class AbstractTheme implements Theme {
             buttonSound = Resources.loadSound(id + "/button.ogg", GameActivity.self);
         }
         return buttonSound;
+    }
+
+
+    @Override
+    public Font getFont() {
+        if (font == null) {
+            font = Resources.loadFont(GameActivity.self, "andy.ttf", 512, 256, GameActivity.self.getHeight() / 10, getTextColor());
+        }
+        return font;
     }
 }

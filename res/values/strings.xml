@@ -10,4 +10,6 @@
     <string name="theme_zombie">Theme - Zombie</string>
     <string name="theme_cat">Theme - Cat</string>
     <string name="reset_score">Reset Score</string>
+    <string name="vibrate_on">Vibrate On</string>
+    <string name="vibrate_off">Vibrate Off</string>
 </resources>

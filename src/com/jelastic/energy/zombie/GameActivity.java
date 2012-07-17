@@ -8,32 +8,26 @@ import android.content.SharedPreferences;
 import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
-import com.google.ads.AdRequest;
-import com.google.ads.AdView;
 import com.jelastic.energy.zombie.themes.CatTheme;
 import com.jelastic.energy.zombie.themes.Theme;
 import com.jelastic.energy.zombie.themes.ZombieTheme;
 import com.jelastic.energy.zombie.util.Resources;
-import org.anddev.andengine.engine.Engine;
-import org.anddev.andengine.engine.camera.Camera;
-import org.anddev.andengine.engine.options.EngineOptions;
-import org.anddev.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
-import org.anddev.andengine.entity.scene.Scene;
-import org.anddev.andengine.entity.text.ChangeableText;
-import org.anddev.andengine.entity.util.FPSLogger;
-import org.anddev.andengine.extension.input.touch.controller.MultiTouch;
-import org.anddev.andengine.extension.input.touch.controller.MultiTouchController;
-import org.anddev.andengine.extension.input.touch.exception.MultiTouchException;
-import org.anddev.andengine.opengl.font.Font;
-import org.anddev.andengine.opengl.texture.TextureOptions;
-import org.anddev.andengine.ui.activity.LayoutGameActivity;
-import org.anddev.andengine.util.Debug;
-import org.anddev.andengine.util.HorizontalAlign;
+import org.andengine.engine.camera.Camera;
+import org.andengine.engine.options.EngineOptions;
+import org.andengine.engine.options.ScreenOrientation;
+import org.andengine.engine.options.resolutionpolicy.FillResolutionPolicy;
+import org.andengine.entity.scene.Scene;
+import org.andengine.entity.text.Text;
+import org.andengine.entity.util.FPSLogger;
+import org.andengine.input.touch.controller.MultiTouch;
+import org.andengine.input.touch.controller.MultiTouchController;
+import org.andengine.opengl.font.Font;
+import org.andengine.ui.activity.SimpleLayoutGameActivity;
 
 import java.util.Observable;
 import java.util.Observer;
 
-public class GameActivity extends LayoutGameActivity implements Observer {
+public class GameActivity extends SimpleLayoutGameActivity implements Observer {
 
     protected Font mFont;
 
@@ -42,31 +36,36 @@ public class GameActivity extends LayoutGameActivity implements Observer {
 
     protected Overlay overlay;
 
-    protected ChangeableText scoreText;
-    protected ChangeableText timerText;
+    protected Text scoreText;
+    protected Text timerText;
 
 
     public static GameActivity self;
     protected SharedPreferences settings;
     private Scene scene;
     public Theme theme;
+    private Options options;
 
     {
         self = this;
     }
 
+
     @Override
-    public Engine onLoadEngine() {
+    public EngineOptions onCreateEngineOptions() {
         Display display = getWindowManager().getDefaultDisplay();
-        
+
         width = display.getWidth();
         height = display.getHeight();
-        settings = getSharedPreferences("zombie.dat", 0);
+        settings = getSharedPreferences("settings", 0);
+        options = new Options(settings);
         new Game();
 
         final Camera camera = new Camera(0, 0, width, height);
-        return new Engine(new EngineOptions(true, EngineOptions.ScreenOrientation.LANDSCAPE, new FillResolutionPolicy(), camera).setNeedsSound(true));
-   }
+        EngineOptions engineOptions = new EngineOptions(true, ScreenOrientation.LANDSCAPE_SENSOR, new FillResolutionPolicy(), camera);
+        engineOptions.getAudioOptions().setNeedsSound(true);
+        return engineOptions;
+    }
 
     @Override
     protected int getLayoutID() {
@@ -84,10 +83,10 @@ public class GameActivity extends LayoutGameActivity implements Observer {
     }
 
     @Override
-    public void onLoadResources() {
+    public void onCreateResources() {
         mEngine.registerUpdateHandler(new FPSLogger());
         Resources.init();
-        theme = getThemeName().equals("zombie") ? new ZombieTheme() : new CatTheme();
+        theme = options.getThemeName().equals("zombie") ? new ZombieTheme() : new CatTheme();
         theme.load();
 
         // font
@@ -95,16 +94,12 @@ public class GameActivity extends LayoutGameActivity implements Observer {
 
         boolean multiTouch = MultiTouch.isSupported(getApplicationContext());
         if (multiTouch) {
-            try {
-                mEngine.setTouchController(new MultiTouchController());
-            } catch (MultiTouchException e) {
-                Debug.e(e);
-            }
+            mEngine.setTouchController(new MultiTouchController());
         }
     }
 
     @Override
-    public Scene onLoadScene() {
+    public Scene onCreateScene() {
         scene = new Scene();
         createScene(scene);
         return scene;
@@ -118,8 +113,8 @@ public class GameActivity extends LayoutGameActivity implements Observer {
         int leftOffset = (width - (5 * (size + dx))) / 2;
         int topTextOffset = height / 80;
 
-        scoreText = new ChangeableText(leftOffset, topTextOffset, mFont, "Score: " + Game.getInstance().getScore(), 11);
-        timerText = new ChangeableText(scoreText.getWidth() + leftOffset, topTextOffset, mFont, " " + Game.getInstance().getTimeLeft() + " sec", HorizontalAlign.RIGHT, 7);
+        scoreText = new Text(leftOffset, topTextOffset, mFont, "Score: " + Game.getInstance().getScore(), 11, getVertexBufferObjectManager());
+        timerText = new Text(scoreText.getWidth() + leftOffset, topTextOffset, mFont, " " + Game.getInstance().getTimeLeft() + " sec", 7, getVertexBufferObjectManager());
         timerText.setVisible(false);
         scene.attachChild(scoreText);
         scene.attachChild(timerText);
@@ -143,14 +138,7 @@ public class GameActivity extends LayoutGameActivity implements Observer {
     }
 
     @Override
-    public void onLoadComplete() {
-        AdView adView = (AdView)this.findViewById(R.id.adView);
-        adView.setVisibility(android.view.View.VISIBLE);
-        adView.setEnabled(true);
-
-        AdRequest request = new AdRequest();
-        adView.loadAd(request);
-
+    public synchronized void onGameCreated() {
         overlay.onLoad();
     }
 
@@ -159,13 +147,35 @@ public class GameActivity extends LayoutGameActivity implements Observer {
         getMenuInflater().inflate(R.menu.settings, menu);
 
         MenuItem qualityItem = menu.findItem(R.id.quality);
-        qualityItem.setTitle(isQuality() ? R.string.quality_high : R.string.quality_low);
+        qualityItem.setTitle(options.isQuality() ? R.string.quality_high : R.string.quality_low);
 
         MenuItem soundItem = menu.findItem(R.id.sound);
-        soundItem.setTitle(isSound() ? R.string.sound_on : R.string.sound_off);
+        if (options.isSound()) {
+            soundItem.setTitle(R.string.sound_on);
+            soundItem.setIcon(R.drawable.ic_audio_vol);
+        } else {
+            soundItem.setTitle(R.string.sound_off);
+            soundItem.setIcon(R.drawable.ic_audio_vol_mute);
+        }
+
+        MenuItem vibrateItem = menu.findItem(R.id.vibrate);
+        if (options.isVibrate()) {
+            vibrateItem.setTitle(R.string.vibrate_on);
+            vibrateItem.setIcon(R.drawable.ic_vibrate);
+        } else {
+            vibrateItem.setTitle(R.string.vibrate_off);
+            vibrateItem.setIcon(R.drawable.ic_vibrate_off);
+        }
 
         MenuItem themeItem = menu.findItem(R.id.theme);
-        themeItem.setTitle(getThemeName().equals("zombie") ? R.string.theme_zombie : R.string.theme_cat);
+
+        if (options.getThemeName().equals("zombie")) {
+            themeItem.setTitle(R.string.theme_zombie);
+            themeItem.setIcon(R.drawable.ic_theme_zombie);
+        } else {
+            themeItem.setTitle( R.string.theme_cat);
+            themeItem.setIcon( R.drawable.ic_theme_cat);
+        }
         return true;
     }
 
@@ -173,64 +183,39 @@ public class GameActivity extends LayoutGameActivity implements Observer {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.sound:
-                setSound(!isSound());
-                item.setTitle(isSound() ? R.string.sound_on : R.string.sound_off);
-                return true;
+                options.setSound(!options.isSound());
+                item.setTitle(options.isSound() ? R.string.sound_on : R.string.sound_off);
+                item.setIcon(options.isSound() ? R.drawable.ic_audio_vol : R.drawable.ic_audio_vol_mute);
+                break;
             case R.id.theme:
-                setThemeName(getThemeName().equals("zombie") ? "cat" : "zombie");
-                item.setTitle(getThemeName().equals("zombie") ? R.string.theme_zombie : R.string.theme_cat);
+                options.setThemeName(options.getThemeName().equals("zombie") ? "cat" : "zombie");
+                item.setTitle(options.getThemeName().equals("zombie") ? R.string.theme_zombie : R.string.theme_cat);
+                item.setIcon(options.getThemeName().equals("zombie") ? R.drawable.ic_theme_zombie : R.drawable.ic_theme_cat);
                 restart();
-                return true;
+                break;
             case R.id.quality:
-                setQuality(!isQuality());
-                item.setTitle(isQuality() ? R.string.quality_high : R.string.quality_low);
+                options.setQuality(!options.isQuality());
+                item.setTitle(options.isQuality() ? R.string.quality_high : R.string.quality_low);
                 restart();
-                return true;
+                break;
+            case R.id.vibrate:
+                options.setVibrate(!options.isVibrate());
+                item.setTitle(options.isVibrate() ? R.string.vibrate_on : R.string.vibrate_off);
+                item.setIcon(options.isVibrate() ? R.drawable.ic_vibrate : R.drawable.ic_vibrate_off);
+                break;
             case R.id.reset:
                 Game.getInstance().resetScore();
-                return true;
+                break;
             default:
                 return super.onOptionsItemSelected(item);
         }
+        return true;
     }
 
     private void restart() {
         AlarmManager mgr = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         mgr.set(AlarmManager.RTC, System.currentTimeMillis() + 1000, PendingIntent.getActivity(this.getBaseContext(), 0, new Intent(getIntent()), getIntent().getFlags()));
         System.exit(2);
-    }
-
-    public boolean isQuality() {
-        return settings.getBoolean("quality", true);
-    }
-
-    public void setQuality(boolean quality) {
-        SharedPreferences.Editor editor = settings.edit();
-        editor.putBoolean("quality", quality);
-        editor.commit();
-
-        Resources.textureOptions = isQuality() ? TextureOptions.BILINEAR : TextureOptions.NEAREST;
-        Resources.fontAntiAliasing = isQuality();
-    }
-
-    public boolean isSound() {
-        return settings.getBoolean("sound", true);
-    }
-
-    public void setSound(boolean sound) {
-        SharedPreferences.Editor editor = settings.edit();
-        editor.putBoolean("sound", sound);
-        editor.commit();
-    }
-
-    public void setThemeName(String theme) {
-        SharedPreferences.Editor editor = settings.edit();
-        editor.putString("theme", theme);
-        editor.commit();
-    }
-
-    public String getThemeName() {
-        return settings.getString("theme", "zombie");
     }
 
     @Override
@@ -246,5 +231,9 @@ public class GameActivity extends LayoutGameActivity implements Observer {
 
     public int getHeight() {
         return height;
+    }
+
+    public Options getOptions() {
+        return options;
     }
 }
