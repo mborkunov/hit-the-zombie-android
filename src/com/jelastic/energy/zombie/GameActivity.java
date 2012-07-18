@@ -42,9 +42,9 @@ public class GameActivity extends SimpleLayoutGameActivity implements Observer {
 
     public static GameActivity self;
     protected SharedPreferences settings;
-    private Scene scene;
     public Theme theme;
     private Options options;
+    private Layout layout;
 
     {
         self = this;
@@ -54,6 +54,8 @@ public class GameActivity extends SimpleLayoutGameActivity implements Observer {
     @Override
     public EngineOptions onCreateEngineOptions() {
         Display display = getWindowManager().getDefaultDisplay();
+
+        layout = new Layout(display);
 
         width = display.getWidth();
         height = display.getHeight();
@@ -100,12 +102,7 @@ public class GameActivity extends SimpleLayoutGameActivity implements Observer {
 
     @Override
     public Scene onCreateScene() {
-        scene = new Scene();
-        createScene(scene);
-        return scene;
-    }
-
-    private void createScene(Scene scene) {
+        final Scene scene = new Scene();
         int size = getTargetSize();
         int dx = width / 25, dy = height / 50;
 
@@ -135,6 +132,7 @@ public class GameActivity extends SimpleLayoutGameActivity implements Observer {
         overlay = new Overlay(0, 0, width, height);
         scene.attachChild(overlay);
         Game.getInstance().addObserver(this);
+        return scene;
     }
 
     @Override
