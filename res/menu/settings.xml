@@ -2,18 +2,18 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item android:id="@+id/quality"
-          android:title="@string/quality_high" />
+          android:title="@string/quality" />
 
     <item android:id="@+id/theme"
-          android:title="@string/theme_zombie" />
+          android:title="@string/theme" />
 
     <item android:id="@+id/sound"
           android:icon="@drawable/ic_audio_vol"
-          android:title="@string/sound_on" />
+          android:title="@string/sound" />
 
   <item android:id="@+id/vibrate"
         android:icon="@drawable/ic_vibrate"
-        android:title="@string/vibrate_on" />
+        android:title="@string/vibrate" />
 
     <item android:id="@+id/reset"
           android:title="@string/reset_score" />

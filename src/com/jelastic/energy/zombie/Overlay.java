@@ -11,6 +11,7 @@ import org.andengine.entity.scene.Scene;
 import org.andengine.entity.sprite.Sprite;
 import org.andengine.entity.text.Text;
 import org.andengine.input.touch.TouchEvent;
+import org.andengine.ui.activity.LayoutGameActivity;
 import org.andengine.util.modifier.IModifier;
 import org.andengine.util.modifier.ease.EaseBounceOut;
 import org.andengine.util.modifier.ease.EaseStrongOut;
@@ -28,7 +29,7 @@ public class Overlay extends Rectangle {
         setColor(0, 0, 0);
         setZIndex(10);
 
-        int width = GameActivity.self.getWidth(), height = GameActivity.self.getHeight();
+        int width = Game.self.getLayout().getWidth(), height = Game.self.getLayout().getHeight();
 
         startButton = new Sprite(500, 200, GameActivity.self.theme.getStartButton(), GameActivity.self.getVertexBufferObjectManager()) {
             @Override
@@ -45,9 +46,9 @@ public class Overlay extends Rectangle {
         startButton.setPosition((width - startButton.getWidth())/ 2 , (height - startButton.getHeight()) / 2);
         startButton.setScale(startScale);
 
-        highscoreText = new Text(startButton.getX(), startButton.getY() + startButton.getHeight() * 2, GameActivity.self.mFont, "Highscore: " + Game.getInstance().getHighscore(), 15, GameActivity.self.getVertexBufferObjectManager());
-        highscoreText.setPosition((GameActivity.self.getWidth() - highscoreText.getWidth())  / 2, highscoreText.getY());
-        highscoreText.setVisible(Game.getInstance().getHighscore() > 0);
+        highscoreText = new Text(startButton.getX(), startButton.getY() + startButton.getHeight() * 2, GameActivity.self.mFont, GameActivity.self.getString(R.string.highscore) + ": " + Game.self.getHighscore(), 22, GameActivity.self.getVertexBufferObjectManager());
+        highscoreText.setPosition((Game.self.getLayout().getWidth() - highscoreText.getWidth())  / 2, highscoreText.getY());
+        highscoreText.setVisible(Game.self.getHighscore() > 0);
 
         attachChild(startButton);
         attachChild(highscoreText);
@@ -70,8 +71,8 @@ public class Overlay extends Rectangle {
         attachChild(shareButton);
     }
 
-    public Overlay(float pX, float pY, float pWidth, float pHeight) {
-        super(pX, pY, pWidth, pHeight, GameActivity.self.getVertexBufferObjectManager());
+    public Overlay(LayoutGameActivity context, float pX, float pY, float pWidth, float pHeight) {
+        super(pX, pY, pWidth, pHeight, context.getVertexBufferObjectManager());
     }
 
     public void hide() {
@@ -86,12 +87,13 @@ public class Overlay extends Rectangle {
 
             @Override
             public void onModifierFinished(IModifier<IEntity> pModifier, IEntity pItem) {
-                Game.getInstance().reset();
-                Game.getInstance().start();
+                Game game = Game.self;
+                game.reset();
+                game.start();
 
                 setVisible(false);
 
-                for (Target target : Game.getInstance().getTargets()) {
+                for (Target target : game.getTargets()) {
                     scene.registerTouchArea(target);
                 }
             }

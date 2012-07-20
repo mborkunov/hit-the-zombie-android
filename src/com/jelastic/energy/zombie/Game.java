@@ -12,8 +12,6 @@ import java.util.Observable;
 
 public class Game extends Observable {
 
-    protected static Game instance;
-
     private boolean started = false;
     private int score = 0;
     private int highscore = 0;
@@ -71,12 +69,11 @@ public class Game extends Observable {
         }
     };
 
-    protected Game() {
-        instance = this;
-    }
+    public final static Game self = new Game();
 
-    public static Game getInstance() {
-        return instance;
+    private Layout layout;
+
+    private Game() {
     }
 
     public boolean isStarted() {
@@ -161,7 +158,7 @@ public class Game extends Observable {
             editor.commit();
             Text highscoreText = GameActivity.self.overlay.highscoreText;
             highscoreText.setText("Highscore: " + highscore);
-            highscoreText.setPosition((GameActivity.self.getWidth() - highscoreText.getWidth())  / 2, highscoreText.getY());
+            highscoreText.setPosition((layout.getWidth() - highscoreText.getWidth())  / 2, highscoreText.getY());
             highscoreText.setVisible(true);
         }
     }
@@ -172,7 +169,15 @@ public class Game extends Observable {
         editor.commit();
         Text highscoreText = GameActivity.self.overlay.highscoreText;
         highscoreText.setText("Highscore: 0");
-        highscoreText.setPosition((GameActivity.self.getWidth() - highscoreText.getWidth())  / 2, highscoreText.getY());
+        highscoreText.setPosition((layout.getWidth() - highscoreText.getWidth())  / 2, highscoreText.getY());
         highscoreText.setVisible(false);
+    }
+
+    public void setLayout(Layout layout) {
+        this.layout = layout;
+    }
+
+    public Layout getLayout() {
+        return layout;
     }
 }

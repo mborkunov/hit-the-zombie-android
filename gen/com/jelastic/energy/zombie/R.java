@@ -35,14 +35,19 @@ public final class R {
     }
     public static final class string {
         public static final int app_name=0x7f040000;
-        public static final int quality_high=0x7f040002;
-        public static final int quality_low=0x7f040001;
-        public static final int reset_score=0x7f040007;
-        public static final int sound_off=0x7f040004;
-        public static final int sound_on=0x7f040003;
-        public static final int theme_cat=0x7f040006;
-        public static final int theme_zombie=0x7f040005;
-        public static final int vibrate_off=0x7f040009;
-        public static final int vibrate_on=0x7f040008;
+        public static final int cat=0x7f040007;
+        public static final int high=0x7f040003;
+        public static final int highscore=0x7f04000e;
+        public static final int low=0x7f040002;
+        public static final int off=0x7f04000b;
+        public static final int on=0x7f04000a;
+        public static final int quality=0x7f040001;
+        public static final int reset_score=0x7f040008;
+        public static final int score=0x7f04000c;
+        public static final int sec=0x7f04000d;
+        public static final int sound=0x7f040004;
+        public static final int theme=0x7f040005;
+        public static final int vibrate=0x7f040009;
+        public static final int zombie=0x7f040006;
     }
 }

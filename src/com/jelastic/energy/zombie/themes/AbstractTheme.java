@@ -1,5 +1,6 @@
 package com.jelastic.energy.zombie.themes;
 
+import com.jelastic.energy.zombie.Game;
 import com.jelastic.energy.zombie.GameActivity;
 import com.jelastic.energy.zombie.util.GameSound;
 import com.jelastic.energy.zombie.util.Resources;
@@ -83,7 +84,7 @@ public abstract class AbstractTheme implements Theme {
     @Override
     public Font getFont() {
         if (font == null) {
-            font = Resources.loadFont(GameActivity.self, "andy.ttf", 512, 256, GameActivity.self.getHeight() / 10, getTextColor());
+            font = Resources.loadFont(GameActivity.self, "andy.ttf", 512, 256, Game.self.getLayout().getFontHeight(), getTextColor());
         }
         return font;
     }

@@ -7,29 +7,47 @@ public class Layout {
     protected static final int COLS = 5;
     protected static final int ROWS = 5;
     private Display display;
+    private int width;
+    private int height;
 
     public Layout(Display display) {
-        this.display = display;
+        this.width = display.getWidth();
+        this.height = display.getHeight();
     }
 
-
     public int getTargetSize() {
-        return -1;
+        return (int) (getHeight() / 4.2f);
     }
 
     public int getOffsetX() {
-        return -1;
+        return (width - (5 * (getTargetSize() + getDeltaX()))) / 2;
     }
 
     public int getOffsetY() {
-        return -1;
+        return height - ((getTargetSize() + getDeltaY()) * 3) - (int) (height * .05);
     }
 
-    public int getOffsetDeltaX() {
-        return -1;
+    public int getTextOffsetY() {
+        return height / 80;
     }
 
-    public int getOffsetDeltaY() {
-        return -1;
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public int getFontHeight() {
+        return height / 10;
+    }
+
+    public int getDeltaX() {
+        return width / 25;
+    }
+
+    public int getDeltaY() {
+        return height / 50;
     }
 }

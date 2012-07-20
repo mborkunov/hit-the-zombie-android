@@ -8,7 +8,9 @@ import org.andengine.input.touch.TouchEvent;
 import org.andengine.opengl.texture.region.TiledTextureRegion;
 import org.andengine.util.math.MathUtils;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 
 public class Target extends TiledSprite {
@@ -26,7 +28,7 @@ public class Target extends TiledSprite {
                 elapsed = 0;
             }
 
-            if (!Game.getInstance().isStarted() && !front && !isRotating()) {
+            if (!Game.self.isStarted() && !front && !isRotating()) {
                 rotate(1);
             }
 
@@ -70,9 +72,10 @@ public class Target extends TiledSprite {
             setScale(1f, 1f);
         }
     };
+    private List<TargetListener> listeners = new ArrayList<TargetListener>();
 
     private int getAngleStep() {
-        return 15 + (int) (Game.getInstance().getProgress() / 15f);
+        return 15 + (int) (Game.self.getProgress() / 15f);
     }
 
     private boolean rotating = false;
@@ -84,6 +87,29 @@ public class Target extends TiledSprite {
     public Target(float pX, float pY, TiledTextureRegion pTiledTextureRegion) {
         super(pX, pY, pTiledTextureRegion, GameActivity.self.getVertexBufferObjectManager());
         this.registerUpdateHandler(handler);
+
+        addTargetListener(new TargetListener() {
+            @Override
+            public void onHit() {
+                if (getCurrentTileIndex() + 3 < getTileCount()) {
+                    setCurrentTileIndex(getCurrentTileIndex() + 3);
+                    rotate(1);
+
+                    GameActivity.self.theme.getHitSound().play();
+                    if (GameActivity.self.getOptions().isVibrate()) {
+                        Vibrator v = (Vibrator) GameActivity.self.getSystemService(Context.VIBRATOR_SERVICE);
+                        v.vibrate(100);
+                    }
+                    Game.self.setScore(Game.self.getScore() + 10);
+                }
+            }
+
+            @Override
+            public void onMiss() {
+                GameActivity.self.theme.getFailSound().play();
+                Game.self.setScore(Game.self.getScore() - 5);
+            }
+        });
     }
 
     public boolean isRotating() {
@@ -105,32 +131,24 @@ public class Target extends TiledSprite {
 
     @Override
     public boolean onAreaTouched(TouchEvent pSceneTouchEvent, float pTouchAreaLocalX, float pTouchAreaLocalY) {
-        if (!Game.getInstance().isStarted()) return true;
+        if (!Game.self.isStarted()) return true;
         if (!pSceneTouchEvent.isActionDown()) return true;
-        if (!front) {
-            hit();
-        } else {
-            miss();
+        for (TargetListener listener : listeners) {
+            if (!front) {
+                listener.onHit();
+            } else {
+                listener.onMiss();
+            }
         }
         return true;
     }
 
-    private void hit() {
-        if (getCurrentTileIndex() + 3 < getTileCount()) {
-            setCurrentTileIndex(getCurrentTileIndex() + 3);
-            rotate(1);
-
-            GameActivity.self.theme.getHitSound().play();
-            if (GameActivity.self.getOptions().isVibrate()) {
-                Vibrator v = (Vibrator) GameActivity.self.getSystemService(Context.VIBRATOR_SERVICE);
-                v.vibrate(100);
-            }
-            Game.getInstance().setScore(Game.getInstance().getScore() + 10);
-        }
+    public void addTargetListener(TargetListener listener) {
+        listeners.add(listener);
     }
 
-    private void miss()  {
-        GameActivity.self.theme.getFailSound().play();
-        Game.getInstance().setScore(Game.getInstance().getScore() - 5);
+    public static interface TargetListener {
+        void onHit();
+        void onMiss();
     }
 }

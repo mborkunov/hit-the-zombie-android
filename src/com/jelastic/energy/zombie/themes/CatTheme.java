@@ -1,7 +1,9 @@
 package com.jelastic.energy.zombie.themes;
 
 import android.graphics.Color;
+import com.jelastic.energy.zombie.Game;
 import com.jelastic.energy.zombie.GameActivity;
+import com.jelastic.energy.zombie.Layout;
 import org.andengine.entity.scene.background.IBackground;
 import org.andengine.entity.scene.background.RepeatingSpriteBackground;
 import org.andengine.opengl.texture.atlas.bitmap.source.AssetBitmapTextureAtlasSource;
@@ -18,8 +20,9 @@ public class CatTheme extends AbstractTheme {
     public IBackground getBackground() {
         if (background == null) {
             AssetBitmapTextureAtlasSource atlas = AssetBitmapTextureAtlasSource.create(GameActivity.self.getAssets(), "gfx/cat/background.png");
-            int cameraWidth = GameActivity.self.getWidth();
-            int cameraHeight = GameActivity.self.getHeight();
+            Layout layout = Game.self.getLayout();
+            int cameraWidth = layout.getWidth();
+            int cameraHeight = layout.getHeight();
             background = new RepeatingSpriteBackground(cameraWidth, cameraHeight, GameActivity.self.getTextureManager(), atlas, GameActivity.self.getVertexBufferObjectManager());
         }
         return background;

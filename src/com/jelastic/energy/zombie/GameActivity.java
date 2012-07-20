@@ -31,9 +31,6 @@ public class GameActivity extends SimpleLayoutGameActivity implements Observer {
 
     protected Font mFont;
 
-    private int width;
-    private int height;
-
     protected Overlay overlay;
 
     protected Text scoreText;
@@ -44,26 +41,23 @@ public class GameActivity extends SimpleLayoutGameActivity implements Observer {
     protected SharedPreferences settings;
     public Theme theme;
     private Options options;
-    private Layout layout;
+    private Game game;
 
     {
         self = this;
     }
 
-
     @Override
     public EngineOptions onCreateEngineOptions() {
         Display display = getWindowManager().getDefaultDisplay();
 
-        layout = new Layout(display);
-
-        width = display.getWidth();
-        height = display.getHeight();
         settings = getSharedPreferences("settings", 0);
         options = new Options(settings);
-        new Game();
+        game = Game.self;
+        Layout layout = new Layout(display);
+        game.setLayout(layout);
 
-        final Camera camera = new Camera(0, 0, width, height);
+        final Camera camera = new Camera(0, 0, layout.getWidth(), layout.getHeight());
         EngineOptions engineOptions = new EngineOptions(true, ScreenOrientation.LANDSCAPE_SENSOR, new FillResolutionPolicy(), camera);
         engineOptions.getAudioOptions().setNeedsSound(true);
         return engineOptions;
@@ -80,10 +74,6 @@ public class GameActivity extends SimpleLayoutGameActivity implements Observer {
         return R.id.render;
     }
 
-    private int getTargetSize() {
-        return (int) (this.height / 4.2f);
-    }
-
     @Override
     public void onCreateResources() {
         mEngine.registerUpdateHandler(new FPSLogger());
@@ -92,7 +82,7 @@ public class GameActivity extends SimpleLayoutGameActivity implements Observer {
         theme.load();
 
         // font
-        mFont = Resources.loadFont(this, "andy.ttf", 512, 256, height / 10, theme.getTextColor());
+        mFont = Resources.loadFont(this, "andy.ttf", 512, 256, game.getLayout().getFontHeight(), theme.getTextColor());
 
         boolean multiTouch = MultiTouch.isSupported(getApplicationContext());
         if (multiTouch) {
@@ -103,35 +93,36 @@ public class GameActivity extends SimpleLayoutGameActivity implements Observer {
     @Override
     public Scene onCreateScene() {
         final Scene scene = new Scene();
-        int size = getTargetSize();
-        int dx = width / 25, dy = height / 50;
+        Layout layout = game.getLayout();
+        int size = layout.getTargetSize();
+        int dx = layout.getDeltaX(), dy = layout.getDeltaY();
 
-        int topOffset = height - ((getTargetSize() + dy) * 3) - (int) (height * .05);
-        int leftOffset = (width - (5 * (size + dx))) / 2;
-        int topTextOffset = height / 80;
+        int topOffset = layout.getOffsetY();
+        int leftOffset = layout.getOffsetX();
+        int topTextOffset = layout.getTextOffsetY();
 
-        scoreText = new Text(leftOffset, topTextOffset, mFont, "Score: " + Game.getInstance().getScore(), 11, getVertexBufferObjectManager());
-        timerText = new Text(scoreText.getWidth() + leftOffset, topTextOffset, mFont, " " + Game.getInstance().getTimeLeft() + " sec", 7, getVertexBufferObjectManager());
+        scoreText = new Text(leftOffset, topTextOffset, mFont, getString(R.string.score)  + ": " + game.getScore(), 11, getVertexBufferObjectManager());
+        timerText = new Text(scoreText.getWidth() + leftOffset, topTextOffset, mFont, " " + game.getTimeLeft() + " " + getString(R.string.sec), 7, getVertexBufferObjectManager());
         timerText.setVisible(false);
         scene.attachChild(scoreText);
         scene.attachChild(timerText);
-        Game.getInstance().getTargets().clear();
+        game.getTargets().clear();
         for (int j = 0; j < Game.ROWS; j++) {
             for (int i = 0; i < Game.COLS; i++) {
                 final Target targetSprite = new Target(leftOffset + (size + dx) * i, topOffset + (size + dy) * j, theme.getTiles().deepCopy());
-                targetSprite.setWidth(getTargetSize());
-                targetSprite.setHeight(getTargetSize());
-                targetSprite.setScaleCenterX(getTargetSize() / 2);
+                targetSprite.setWidth(layout.getTargetSize());
+                targetSprite.setHeight(layout.getTargetSize());
+                targetSprite.setScaleCenterX(layout.getTargetSize() / 2);
                 targetSprite.setZIndex(2);
                 scene.attachChild(targetSprite);
-                Game.getInstance().addTarget(targetSprite);
+                game.addTarget(targetSprite);
             }
         }
         scene.setBackground(theme.getBackground());
-        scene.registerUpdateHandler(Game.getInstance().getUpdateHandler());
-        overlay = new Overlay(0, 0, width, height);
+        scene.registerUpdateHandler(game.getUpdateHandler());
+        overlay = new Overlay(this, 0, 0, layout.getWidth(), layout.getHeight());
         scene.attachChild(overlay);
-        Game.getInstance().addObserver(this);
+        game.addObserver(this);
         return scene;
     }
 
@@ -144,34 +135,43 @@ public class GameActivity extends SimpleLayoutGameActivity implements Observer {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.settings, menu);
 
+        String offString = getString(R.string.off);
+        String onString = getString(R.string.on);
+        String qualityString = getString(R.string.quality);
+        String soundString = getString(R.string.sound);
+        String delimiter = " - ";
+
         MenuItem qualityItem = menu.findItem(R.id.quality);
-        qualityItem.setTitle(options.isQuality() ? R.string.quality_high : R.string.quality_low);
+
+
+        qualityItem.setTitle(qualityString + delimiter + getString(options.isQuality() ? R.string.high : R.string.low));
 
         MenuItem soundItem = menu.findItem(R.id.sound);
+
         if (options.isSound()) {
-            soundItem.setTitle(R.string.sound_on);
+            soundItem.setTitle(soundString + delimiter + onString);
             soundItem.setIcon(R.drawable.ic_audio_vol);
         } else {
-            soundItem.setTitle(R.string.sound_off);
+            soundItem.setTitle(soundString + delimiter + offString);
             soundItem.setIcon(R.drawable.ic_audio_vol_mute);
         }
 
         MenuItem vibrateItem = menu.findItem(R.id.vibrate);
         if (options.isVibrate()) {
-            vibrateItem.setTitle(R.string.vibrate_on);
+            vibrateItem.setTitle(getString(R.string.vibrate) + delimiter + onString);
             vibrateItem.setIcon(R.drawable.ic_vibrate);
         } else {
-            vibrateItem.setTitle(R.string.vibrate_off);
+            vibrateItem.setTitle(getString(R.string.vibrate) + delimiter + onString);
             vibrateItem.setIcon(R.drawable.ic_vibrate_off);
         }
 
         MenuItem themeItem = menu.findItem(R.id.theme);
 
         if (options.getThemeName().equals("zombie")) {
-            themeItem.setTitle(R.string.theme_zombie);
+            themeItem.setTitle(getString(R.string.theme) + delimiter + getString(R.string.zombie));
             themeItem.setIcon(R.drawable.ic_theme_zombie);
         } else {
-            themeItem.setTitle( R.string.theme_cat);
+            themeItem.setTitle(getString(R.string.theme) + delimiter + getString(R.string.cat));
             themeItem.setIcon( R.drawable.ic_theme_cat);
         }
         return true;
@@ -179,30 +179,43 @@ public class GameActivity extends SimpleLayoutGameActivity implements Observer {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        String offString = getString(R.string.off);
+        String onString = getString(R.string.on);
+        String qualityString = getString(R.string.quality);
+        String soundString = getString(R.string.sound);
+        String delimiter = " - ";
+
         switch (item.getItemId()) {
             case R.id.sound:
                 options.setSound(!options.isSound());
-                item.setTitle(options.isSound() ? R.string.sound_on : R.string.sound_off);
+                item.setTitle(soundString + delimiter + (options.isSound() ? onString : offString));
                 item.setIcon(options.isSound() ? R.drawable.ic_audio_vol : R.drawable.ic_audio_vol_mute);
                 break;
             case R.id.theme:
                 options.setThemeName(options.getThemeName().equals("zombie") ? "cat" : "zombie");
-                item.setTitle(options.getThemeName().equals("zombie") ? R.string.theme_zombie : R.string.theme_cat);
-                item.setIcon(options.getThemeName().equals("zombie") ? R.drawable.ic_theme_zombie : R.drawable.ic_theme_cat);
+
+                if (options.getThemeName().equals("zombie")) {
+                    item.setTitle(getString(R.string.theme) + delimiter + getString(R.string.zombie));
+                    item.setIcon(R.drawable.ic_theme_zombie);
+                } else {
+                    item.setTitle(getString(R.string.theme) + delimiter + getString(R.string.cat));
+                    item.setIcon( R.drawable.ic_theme_cat);
+                }
                 restart();
                 break;
             case R.id.quality:
                 options.setQuality(!options.isQuality());
-                item.setTitle(options.isQuality() ? R.string.quality_high : R.string.quality_low);
+                item.setTitle(qualityString + delimiter + getString(options.isQuality() ? R.string.high : R.string.low));
                 restart();
                 break;
             case R.id.vibrate:
                 options.setVibrate(!options.isVibrate());
-                item.setTitle(options.isVibrate() ? R.string.vibrate_on : R.string.vibrate_off);
+                String vibrateString = getString(R.string.vibrate);
+                item.setTitle(vibrateString + delimiter + (options.isVibrate() ? onString : offString));
                 item.setIcon(options.isVibrate() ? R.drawable.ic_vibrate : R.drawable.ic_vibrate_off);
                 break;
             case R.id.reset:
-                Game.getInstance().resetScore();
+                game.resetScore();
                 break;
             default:
                 return super.onOptionsItemSelected(item);
@@ -221,14 +234,6 @@ public class GameActivity extends SimpleLayoutGameActivity implements Observer {
         if (!((Game) observable).isStarted()) {
             overlay.show();
         }
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public int getHeight() {
-        return height;
     }
 
     public Options getOptions() {
