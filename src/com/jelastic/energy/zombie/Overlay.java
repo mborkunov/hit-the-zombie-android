@@ -68,7 +68,7 @@ public class Overlay extends Rectangle {
         shareButton.setScaleCenter(shareButton.getWidth(), shareButton.getHeight());
         shareButton.setScale(scale / 100f);
 
-        attachChild(shareButton);
+        //attachChild(shareButton);
     }
 
     public Overlay(LayoutGameActivity context, float pX, float pY, float pWidth, float pHeight) {
